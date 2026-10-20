@@ -3,14 +3,16 @@
  * Orchestrates the package: the registry, the runner and every surface.
  *
  * Booted once by Loader. Plugins register their manifests on the
- * `mwp_self_test_register` action (fired at `init` priority 0) or by
+ * `mmwp_self_test_register` action (fired at `init` priority 0) or by
  * calling `Self_Test::instance()->registry()->register()` directly.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
+
+use MammothWP\SelfTest\Compat\Hooks;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -89,6 +91,8 @@ final class Self_Test
             add_action('init', [$this, 'fire_register'], 0);
         }
 
+        add_action('init', [Migration::class, 'maybe_run'], 1);
+
         Surfaces\Cli::init($this->runner);
         Surfaces\Abilities::init($this->runner);
 
@@ -121,6 +125,6 @@ final class Self_Test
          *
          * @since 0.1.0
          */
-        do_action('mwp_self_test_register', $this->registry);
+        Hooks::action('mmwp_self_test_register', [$this->registry]);
     }
 }

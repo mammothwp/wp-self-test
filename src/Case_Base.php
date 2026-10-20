@@ -1,6 +1,6 @@
 <?php
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -23,13 +23,13 @@ if (!defined('ABSPATH')) {
  * The context must be JSON-serialisable: the runner stores it so cleanup can
  * happen in a later request (the "Remove test data" button).
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 abstract class Case_Base
 {
     /** Owner slug a case may use for every log entry and label it writes. */
-    const OWNER = 'mwp-self-test';
+    const OWNER = 'mmwp-self-test';
 
     /** @var array Definition from the manifest (id, plugin, label, category, layers, args, requires). */
     protected $definition = [];

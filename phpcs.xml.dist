@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<ruleset name="Mammoth WP Self-Test">
+    <description>Coding standard for mammothwp/wp-self-test.</description>
+
+    <file>bootstrap.php</file>
+    <file>compat.php</file>
+    <file>version.php</file>
+    <file>src</file>
+    <file>bin</file>
+    <file>templates</file>
+    <file>tests</file>
+    <file>phpunit</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="ps"/>
+
+    <config name="testVersion" value="7.4-"/>
+    <config name="minimum_wp_version" value="6.0"/>
+
+    <rule ref="WordPress-Extra">
+        <!-- The package keeps its own house style: short arrays, PSR-4 class files, K&R-free braces. -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="WordPress.Files.FileName"/>
+        <exclude name="Universal.Files.SeparateFunctionsFromOO"/>
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="Squiz.Commenting"/>
+        <exclude name="Generic.Commenting"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+        <exclude name="Universal.NamingConventions"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature"/>
+        <exclude name="Universal.WhiteSpace.PrecisionAlignment"/>
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing"/>
+        <exclude name="Squiz.ControlStructures.ControlSignature"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/>
+        <exclude name="Generic.Functions.FunctionCallArgumentSpacing"/>
+        <exclude name="PSR2.Methods.FunctionClosingBrace"/>
+        <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+        <exclude name="Generic.Formatting.DisallowMultipleStatements"/>
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax"/>
+        <exclude name="WordPress.Arrays.ArrayIndentation"/>
+        <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+        <exclude name="WordPress.WP.I18n.NonSingularStringLiteralDomain"/>
+        <exclude name="WordPress.WP.I18n.MissingTranslatorsComment"/>
+        <exclude name="Generic.PHP.DisallowShortOpenTag"/>
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+        <exclude name="Generic.Functions.OpeningFunctionBraceKernighanRitchie"/>
+        <exclude name="Generic.Classes.OpeningBraceSameLine"/>
+        <exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+        <exclude name="WordPress.Arrays.ArrayKeySpacingRestrictions"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+        <exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+        <exclude name="WordPress.WhiteSpace.CastStructureSpacing"/>
+        <exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement"/>
+        <exclude name="Squiz.Strings.DoubleQuoteUsage"/>
+        <exclude name="Universal.Namespaces.DisallowCurlyBraceSyntax"/>
+        <exclude name="Universal.Namespaces.OneDeclarationPerFile"/>
+        <exclude name="Universal.Namespaces.DisallowDeclarationWithoutName"/>
+        <exclude name="Generic.Files.OneObjectStructurePerFile"/>
+    </rule>
+
+    <!-- Test stubs mimic WordPress/WP-CLI globals and the shim declares WP_CLI on purpose. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude-pattern>tests/*</exclude-pattern>
+        <exclude-pattern>src/Wp_Cli_Shim.php</exclude-pattern>
+        <exclude-pattern>phpunit/*</exclude-pattern>
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="mmwp"/>
+                <element value="MammothWP"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- bin/ holds CLI scripts that print to a terminal, not WordPress output. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude-pattern>bin/*</exclude-pattern>
+        <exclude-pattern>templates/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.Security.EscapeOutput">
+        <exclude-pattern>bin/*</exclude-pattern>
+        <exclude-pattern>src/Wp_Cli_Shim.php</exclude-pattern>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.WP.GlobalVariablesOverride">
+        <exclude-pattern>bin/*</exclude-pattern>
+        <exclude-pattern>templates/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.WP.AlternativeFunctions">
+        <exclude-pattern>bin/*</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.DiscouragedPHPFunctions">
+        <exclude-pattern>phpunit/*</exclude-pattern>
+    </rule>
+    <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude-pattern>src/Wp_Cli_Shim.php</exclude-pattern>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="wp-self-test"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

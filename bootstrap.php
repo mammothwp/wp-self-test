@@ -7,7 +7,7 @@
  * every include registers its copy, and the newest boots on
  * `plugins_loaded`. Outside WordPress this file is a no-op.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
@@ -15,16 +15,16 @@ if (!defined('ABSPATH')) {
     return;
 }
 
-if (!class_exists('Gnnpls\\SelfTest\\Loader', false)) {
+if (!class_exists('MammothWP\\SelfTest\\Loader', false)) {
     require __DIR__ . '/src/Loader.php';
 }
 
-if (!method_exists('Gnnpls\\SelfTest\\Loader', 'register')) {
+if (!method_exists('MammothWP\\SelfTest\\Loader', 'register')) {
     return;
 }
 
-$mwp_self_test_version = require __DIR__ . '/version.php';
+$mmwp_self_test_version = require __DIR__ . '/version.php';
 
-\Gnnpls\SelfTest\Loader::register((string) $mwp_self_test_version, __DIR__);
+\MammothWP\SelfTest\Loader::register((string) $mmwp_self_test_version, __DIR__);
 
-unset($mwp_self_test_version);
+unset($mmwp_self_test_version);

@@ -13,7 +13,7 @@
  * Nothing here is defined when real WP-CLI is present. Loadable without an
  * autoloader (a PHPUnit bootstrap requires it before WordPress).
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
@@ -120,7 +120,7 @@ namespace WP_CLI\Utils {
     }
 }
 
-namespace Gnnpls\SelfTest {
+namespace MammothWP\SelfTest {
 
     /**
      * Helpers for code that must know whether the shim is what defines WP_CLI.

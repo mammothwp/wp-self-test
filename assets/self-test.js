@@ -1,27 +1,27 @@
 /**
  * Self-test dashboard (Tools › Self-test).
  *
- * Two actions on the mwp-self-test/v1 REST routes: preview the steps, or
+ * Two actions on the mmwp/v1 REST routes (/self-test/...): preview the steps, or
  * run the selected cases with cleanup and show validation, summary and a
  * raw-JSON download. All markup comes from the <template> elements in
  * templates/dashboard.php; this file only clones and fills them. Plain
- * script, no build step; enqueued by Gnnpls\SelfTest\Admin on its screen.
+ * script, no build step; enqueued by MammothWP\SelfTest\Admin on its screen.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 (function () {
   'use strict';
 
-  const STRINGS = (typeof mwpSelfTest !== 'undefined' && mwpSelfTest.strings) ? mwpSelfTest.strings : {};
+  const STRINGS = (typeof mmwpSelfTest !== 'undefined' && mmwpSelfTest.strings) ? mmwpSelfTest.strings : {};
 
   const log = (message, data) => {
-    if (typeof window.console !== 'undefined' && typeof console.debug === 'function' && window.mwpSelfTestDebug) {
+    if (typeof window.console !== 'undefined' && typeof console.debug === 'function' && window.mmwpSelfTestDebug) {
       console.debug('[Self-test] ' + message, data);
     }
   };
 
-  class MwpSelfTestDashboard {
+  class MmwpSelfTestDashboard {
   constructor(root) {
     this.root = root;
     this.restUrl = root.dataset.restUrl;
@@ -55,7 +55,7 @@
 
   /** Only show the check rows of the selected surface in the results panel. */
   applyCheckFilter() {
-    this.panels.results.querySelectorAll('.mwp-self-test__result').forEach((result) => {
+    this.panels.results.querySelectorAll('.mmwp-self-test__result').forEach((result) => {
       let hidden = 0;
       result.querySelectorAll('tr[data-check-layer]').forEach((row) => {
         const show = !this.filters.layer || row.dataset.checkLayer === this.filters.layer;
@@ -132,7 +132,7 @@
   }
 
   setBusy(message) {
-    this.root.classList.toggle('mwp-self-test--busy', Boolean(message));
+    this.root.classList.toggle('mmwp-self-test--busy', Boolean(message));
     this.root.querySelectorAll('button[data-action]').forEach((button) => {
       button.disabled = Boolean(message);
     });
@@ -161,7 +161,7 @@
   badge(node, slot, status) {
     const target = this.fill(node, slot, STRINGS[status === 'error' ? 'error_status' : status] || status);
     if (target) {
-      target.className = `mwp-self-test__badge mwp-self-test__badge--${status}`;
+      target.className = `mmwp-self-test__badge mmwp-self-test__badge--${status}`;
     }
   }
 
@@ -241,7 +241,7 @@
         const row = this.template('result-check');
         row.dataset.checkLayer = check.layer;
         this.badge(row, 'status', check.status);
-        this.fill(row, 'layer', check.layer).className = `mwp-self-test__layer mwp-self-test__layer--${check.layer}`;
+        this.fill(row, 'layer', check.layer).className = `mmwp-self-test__layer mmwp-self-test__layer--${check.layer}`;
         this.fill(row, 'label', check.label);
         this.fill(row, 'detail', check.detail || '');
         checks.appendChild(row);
@@ -263,7 +263,7 @@
       if (cell) {
         cell.replaceChildren();
         const badge = document.createElement('span');
-        badge.className = `mwp-self-test__badge mwp-self-test__badge--${result.status}`;
+        badge.className = `mmwp-self-test__badge mmwp-self-test__badge--${result.status}`;
         badge.textContent = STRINGS[result.status === 'error' ? 'error_status' : result.status] || result.status;
         cell.appendChild(badge);
       }
@@ -298,14 +298,14 @@
     }
     this.downloadUrl = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
     link.href = this.downloadUrl;
-    link.download = `mwp-self-test-report-${(report.finished_at || '').replace(/[:+]/g, '-')}.json`;
+    link.download = `mmwp-self-test-report-${(report.finished_at || '').replace(/[:+]/g, '-')}.json`;
   }
 }
 
-  document.querySelectorAll('.mwp-self-test').forEach((root) => {
-    if (!root.dataset.mwpSelfTestReady) {
-      root.dataset.mwpSelfTestReady = '1';
-      new MwpSelfTestDashboard(root);
+  document.querySelectorAll('.mmwp-self-test').forEach((root) => {
+    if (!root.dataset.mmwpSelfTestReady) {
+      root.dataset.mmwpSelfTestReady = '1';
+      new MmwpSelfTestDashboard(root);
     }
   });
 })();

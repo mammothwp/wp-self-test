@@ -1,6 +1,6 @@
 <?php
 /**
- * mwp-self-test/* abilities: the same Runner exposed to the WordPress
+ * mmwp/self-test-* abilities: the same Runner exposed to the WordPress
  * Abilities API (core 6.9+) so an AI client can list, preview, run, clean
  * up and read the report. run and cleanup are destructive and require
  * `confirm: true`.
@@ -8,14 +8,15 @@
  * Self-contained on purpose: the package must not depend on any plugin's
  * ability helpers.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest\Surfaces;
+namespace MammothWP\SelfTest\Surfaces;
 
-use Gnnpls\SelfTest\Config;
-use Gnnpls\SelfTest\Runner;
+use MammothWP\SelfTest\Compat\Hooks;
+use MammothWP\SelfTest\Config;
+use MammothWP\SelfTest\Runner;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -23,7 +24,13 @@ if (!defined('ABSPATH')) {
 
 final class Abilities
 {
-    const CATEGORY = 'mwp-self-test';
+    const CATEGORY = 'mmwp-self-test';
+
+    /** Ability name prefix: `mmwp/self-test-<verb>`. */
+    const NAME_PREFIX = 'mmwp/self-test-';
+
+    /** Deprecated pre-1.0 ability name prefix: `mwp-self-test/<verb>`. */
+    const LEGACY_PREFIX = 'mwp-self-test/';
 
     /** @var Runner */
     private static $runner;
@@ -71,10 +78,38 @@ final class Abilities
          *
          * @since 0.1.0
          */
-        $definitions = apply_filters('mwp_self_test_ability_definitions', self::definitions());
+        $definitions = Hooks::filter('mmwp_self_test_ability_definitions', self::definitions());
 
         foreach ($definitions as $name => $args) {
             wp_register_ability($name, $args);
+        }
+
+        self::register_legacy($definitions);
+    }
+
+    /**
+     * Keep the pre-1.0 ability names registered, flagged as deprecated.
+     *
+     * Skipped for names another copy of the package already registered.
+     *
+     * @param array<string,array> $definitions Definitions keyed by the new ability name.
+     *
+     * @return void
+     *
+     * @since 1.0.0
+     */
+    private static function register_legacy(array $definitions)
+    {
+        foreach ($definitions as $name => $args) {
+            $legacy = self::LEGACY_PREFIX . substr($name, strlen(self::NAME_PREFIX));
+            if (strpos($name, self::NAME_PREFIX) !== 0 || (function_exists('wp_has_ability') && wp_has_ability($legacy))) {
+                continue;
+            }
+
+            /* translators: %s: ability label. */
+            $args['label'] = sprintf(__('%s (deprecated)', Config::TEXT_DOMAIN), $args['label']);
+            $args['description'] = sprintf('Deprecated, use %s. %s', $name, $args['description']);
+            wp_register_ability($legacy, $args);
         }
     }
 
@@ -92,7 +127,7 @@ final class Abilities
         $any     = ['type' => 'object', 'additionalProperties' => true];
 
         return [
-            self::CATEGORY . '/list-cases' => self::definition(
+            self::NAME_PREFIX . 'list-cases' => self::definition(
                 __('List self-test cases', Config::TEXT_DOMAIN),
                 __('The cases every registered plugin declares, with their plugin, category, the surfaces (rest/cli/ability) they cover, whether they can run on this site and whether an earlier run left test data behind.', Config::TEXT_DOMAIN),
                 ['type' => 'object', 'properties' => $ids],
@@ -100,7 +135,7 @@ final class Abilities
                 'run_list_cases',
                 true
             ),
-            self::CATEGORY . '/preview' => self::definition(
+            self::NAME_PREFIX . 'preview' => self::definition(
                 __('Preview self-test steps', Config::TEXT_DOMAIN),
                 __('The ordered steps each case would perform, without running anything.', Config::TEXT_DOMAIN),
                 ['type' => 'object', 'properties' => $ids],
@@ -108,7 +143,7 @@ final class Abilities
                 'run_preview',
                 true
             ),
-            self::CATEGORY . '/run' => self::definition(
+            self::NAME_PREFIX . 'run' => self::definition(
                 __('Run self-tests', Config::TEXT_DOMAIN),
                 __('Run the given cases (default: all), validate every surface and store the report. Creates test data on this site unless cleanup is true; pass confirm: true.', Config::TEXT_DOMAIN),
                 ['type' => 'object', 'properties' => $ids + ['cleanup' => ['type' => 'boolean', 'description' => __('Remove the test data right after each case.', Config::TEXT_DOMAIN)]] + $confirm, 'required' => ['confirm']],
@@ -116,7 +151,7 @@ final class Abilities
                 'run_run',
                 false
             ),
-            self::CATEGORY . '/cleanup' => self::definition(
+            self::NAME_PREFIX . 'cleanup' => self::definition(
                 __('Remove self-test data', Config::TEXT_DOMAIN),
                 __('Delete the test data left by earlier runs (default: every case with pending data). Pass confirm: true.', Config::TEXT_DOMAIN),
                 ['type' => 'object', 'properties' => $ids + $confirm, 'required' => ['confirm']],
@@ -125,7 +160,7 @@ final class Abilities
                 false,
                 true
             ),
-            self::CATEGORY . '/get-report' => self::definition(
+            self::NAME_PREFIX . 'get-report' => self::definition(
                 __('Get the last self-test report', Config::TEXT_DOMAIN),
                 __('The report stored by the most recent run: summary counts and per-case checks.', Config::TEXT_DOMAIN),
                 ['type' => 'object', 'properties' => []],
@@ -171,7 +206,7 @@ final class Abilities
             return true;
         }
 
-        return new \WP_Error('mwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => is_user_logged_in() ? 403 : 401]);
+        return new \WP_Error('mmwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => is_user_logged_in() ? 403 : 401]);
     }
 
     public static function run_list_cases($input = null)
@@ -245,7 +280,7 @@ final class Abilities
             return true;
         }
 
-        return new \WP_Error('mwp_self_test_confirm_required', __('This action changes data on the site. Pass confirm: true to proceed.', Config::TEXT_DOMAIN), ['status' => 400]);
+        return new \WP_Error('mmwp_self_test_confirm_required', __('This action changes data on the site. Pass confirm: true to proceed.', Config::TEXT_DOMAIN), ['status' => 400]);
     }
 
     /** Pass a WP_Error through untouched, otherwise return the payload. */

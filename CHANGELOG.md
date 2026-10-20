@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-20
+
+Rebrand to Mammoth WP. Source of truth is GitLab `mammothwp/wp-self-test`; `github.com/mammothwp/wp-self-test` is a push mirror.
+
+### Changed
+- **Breaking (renames, all with a deprecated alias for this major version, see below):** Composer package, PHP namespace, hook/option/REST/CLI/ability names and CSS/JS identifiers now follow the Mammoth WP brand rules (`mmwp_`, `mmwp-`, `MammothWP\`).
+- `wp mmwp self-test <slug> --format=table` runs one plugin's cases (the shared Mammoth WP CI command). `wp mmwp self-test` is a single command: the first positional argument is a plugin slug or one of `list`, `preview`, `run`, `cleanup`, `report`, `migrate`.
+- Authors, homepage and support links are Mammoth WP (info@mammothwp.com, mammothwp.com).
+- README rewritten; brand guidelines added in `docs/BRAND.md`.
+
+### Added
+- `compat.php` (Composer `autoload.files`): `Gnnpls\SelfTest\*` classes resolve to `MammothWP\SelfTest\*` through `class_alias()`; each old class name is reported once per site.
+- `Compat\Hooks`: every hook fires under the new name, then under the old `mwp_` name via `do_action_deprecated()` / `apply_filters_deprecated()`.
+- `Migration` and `wp mmwp self-test migrate [--dry-run]`: idempotent move of `mwp_self_test_state` to `mmwp_self_test_state` (runs once at `init`; the old option is read as a fallback until then).
+- Deprecated aliases: `wp mwp self-test <action>` (prints a warning, forwards), REST namespace `mwp-self-test/v1`, abilities `mwp-self-test/*`. They are skipped when another plugin's pre-1.0 copy is active and already registers them.
+- Dev tooling: PHPUnit suite with a WordPress stub bootstrap (`tests/`), PHPCS (WPCS, `PrefixAllGlobals` = `mmwp`/`MammothWP`) and PHPStan; the lint workflow now runs all three.
+
+### Fixed
+- `bin/install-hooks` recognises hooks written by `gnnpls/wp-self-test` and rewrites them to the new vendor path.
+
+### Upgrading from gnnpls/wp-self-test
+
+`composer.json` declares `"replace": {"gnnpls/wp-self-test": "self.version"}`. Swap the requirement for `mammothwp/wp-self-test`; old names keep working but are deprecated and removed in 2.0.0.
+
+| Old | New |
+|---|---|
+| `gnnpls/wp-self-test` (Composer) | `mammothwp/wp-self-test` |
+| `Gnnpls\SelfTest\*` (every class) | `MammothWP\SelfTest\*` |
+| `mwp_self_test_enabled`, `_booted`, `_register`, `_manifest`, `_ui_enabled`, `_shim_enabled`, `_capability`, `_abilities_available`, `_asset_url`, `_ability_definitions`, `_completed` | same suffix with `mmwp_self_test_` |
+| `mwp_self_test_state` (option) | `mmwp_self_test_state` |
+| WP_Error codes `mwp_self_test_*` | `mmwp_self_test_*` |
+| `wp mwp self-test <action>` | `wp mmwp self-test <action>` or `wp mmwp self-test <slug>` |
+| REST `mwp-self-test/v1/<route>` | `mmwp/v1/self-test/<route>` |
+| Abilities `mwp-self-test/<verb>` | `mmwp/self-test-<verb>` |
+| Ability category `mwp-self-test` | `mmwp-self-test` |
+| Admin page `?page=mwp-self-test`, asset handles `mwp-self-test` | `mmwp-self-test` (no alias) |
+| CSS `.mwp-self-test*`, `--mwp-self-test-*` | `.mmwp-self-test*`, `--mmwp-self-test-*` (no alias) |
+| JS `mwpSelfTest`, `MwpSelfTestDashboard`, `window.mwpSelfTestDebug` | `mmwpSelfTest`, `MmwpSelfTestDashboard`, `window.mmwpSelfTestDebug` (no alias) |
+| Env `MWP_PLUGIN_FILES`, `MWP_SELF_TEST_BOOTSTRAP`, `MWP_SELF_TEST_AUTOLOAD` | `MMWP_*` (old names still read) |
+| `Case_Base::OWNER` `mwp-self-test` | `mmwp-self-test` |
+
 ## [0.7.0] - 2026-10-12
 
 Prompt: "in wp-extend can we use the plugin only in development environments and not in productions?" → "please commit to gnnpls-self test and then update the wp-extend also".

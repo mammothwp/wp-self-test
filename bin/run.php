@@ -10,10 +10,10 @@
  *
  *   php bin/run.php [--bootstrap=tests/bootstrap.php] [--autoload=tests/vendor/autoload.php] [--plugin=<slug>] [case,ids]
  *
- * Environment: MWP_SELF_TEST_BOOTSTRAP and MWP_SELF_TEST_AUTOLOAD provide
- * the same two paths. Relative paths resolve against the working directory.
+ * Environment: MMWP_SELF_TEST_BOOTSTRAP and MMWP_SELF_TEST_AUTOLOAD provide
+ * the same two paths (the pre-1.0 MWP_SELF_TEST_* names are still read, deprecated). Relative paths resolve against the working directory.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
@@ -39,28 +39,28 @@ $resolve = function ($path) {
     return $path[0] === '/' ? $path : getcwd() . '/' . $path;
 };
 
-$autoload  = $resolve(isset($options['autoload']) ? $options['autoload'] : (getenv('MWP_SELF_TEST_AUTOLOAD') ?: 'tests/vendor/autoload.php'));
-$bootstrap = $resolve(isset($options['bootstrap']) ? $options['bootstrap'] : (getenv('MWP_SELF_TEST_BOOTSTRAP') ?: 'tests/bootstrap.php'));
+$autoload  = $resolve(isset($options['autoload']) ? $options['autoload'] : (getenv('MMWP_SELF_TEST_AUTOLOAD') ?: getenv('MWP_SELF_TEST_AUTOLOAD') ?: 'tests/vendor/autoload.php'));
+$bootstrap = $resolve(isset($options['bootstrap']) ? $options['bootstrap'] : (getenv('MMWP_SELF_TEST_BOOTSTRAP') ?: getenv('MWP_SELF_TEST_BOOTSTRAP') ?: 'tests/bootstrap.php'));
 
 if ($autoload !== '' && is_file($autoload)) {
     require $autoload;
 }
 
 if (!is_file($bootstrap)) {
-    fwrite(STDERR, "Self-test could not run: bootstrap file not found at {$bootstrap}. Pass --bootstrap=FILE or set MWP_SELF_TEST_BOOTSTRAP.\n");
+    fwrite(STDERR, "Self-test could not run: bootstrap file not found at {$bootstrap}. Pass --bootstrap=FILE or set MMWP_SELF_TEST_BOOTSTRAP.\n");
     exit(1);
 }
 
 require $bootstrap;
 
-if (!class_exists('Gnnpls\\SelfTest\\Self_Test')) {
-    fwrite(STDERR, "Self-test could not run: the bootstrap loaded WordPress but not the gnnpls/wp-self-test package (is it required by the plugin under test?).\n");
+if (!class_exists('MammothWP\\SelfTest\\Self_Test')) {
+    fwrite(STDERR, "Self-test could not run: the bootstrap loaded WordPress but not the mammothwp/wp-self-test package (is it required by the plugin under test?).\n");
     exit(1);
 }
 
 $ids    = isset($arguments[0]) ? array_values(array_filter(explode(',', $arguments[0]))) : [];
 $plugin = isset($options['plugin']) ? (string) $options['plugin'] : '';
-$runner = \Gnnpls\SelfTest\Self_Test::instance()->runner();
+$runner = \MammothWP\SelfTest\Self_Test::instance()->runner();
 $report = $runner->run($ids, true, $plugin);
 
 if (is_wp_error($report)) {

@@ -5,11 +5,13 @@
  * Shape: `{"version": 1, "cases": [{id, label, category, layers, class,
  * requires, args, covers: {rest, cli, ability}}]}`.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
+
+use MammothWP\SelfTest\Compat\Hooks;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -64,12 +66,13 @@ final class Manifest
         }
 
         if (!is_readable($this->path)) {
-            return new \WP_Error('mwp_self_test_manifest_missing', sprintf(__('Self-test manifest not found at %s.', Config::TEXT_DOMAIN), $this->path));
+            return new \WP_Error('mmwp_self_test_manifest_missing', sprintf(__('Self-test manifest not found at %s.', Config::TEXT_DOMAIN), $this->path));
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local manifest file.
         $decoded = json_decode((string) file_get_contents($this->path), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded) || empty($decoded['cases']) || !is_array($decoded['cases'])) {
-            return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Self-test manifest %s is not valid JSON with a "cases" array.', Config::TEXT_DOMAIN), $this->path));
+            return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Self-test manifest %s is not valid JSON with a "cases" array.', Config::TEXT_DOMAIN), $this->path));
         }
 
         $seen = [];
@@ -90,7 +93,7 @@ final class Manifest
          *
          * @since 0.1.0
          */
-        $this->data = apply_filters('mwp_self_test_manifest', $decoded, $this->path, $this->plugin);
+        $this->data = Hooks::filter('mmwp_self_test_manifest', $decoded, [$this->path, $this->plugin]);
 
         return $this->data;
     }
@@ -128,21 +131,21 @@ final class Manifest
     private function validate_entry($entry, $index, array $seen)
     {
         if (!is_array($entry) || empty($entry['id']) || empty($entry['class']) || empty($entry['label'])) {
-            return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Manifest case #%d needs "id", "label" and "class".', Config::TEXT_DOMAIN), $index));
+            return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Manifest case #%d needs "id", "label" and "class".', Config::TEXT_DOMAIN), $index));
         }
 
         if (in_array($entry['id'], $seen, true)) {
-            return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Manifest case id "%s" is used more than once.', Config::TEXT_DOMAIN), $entry['id']));
+            return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Manifest case id "%s" is used more than once.', Config::TEXT_DOMAIN), $entry['id']));
         }
 
         if (!class_exists($entry['class']) || !is_subclass_of($entry['class'], Case_Base::class)) {
-            return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Manifest case "%1$s": class %2$s does not exist or does not extend %3$s.', Config::TEXT_DOMAIN), $entry['id'], $entry['class'], Case_Base::class));
+            return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Manifest case "%1$s": class %2$s does not exist or does not extend %3$s.', Config::TEXT_DOMAIN), $entry['id'], $entry['class'], Case_Base::class));
         }
 
         if ($this->requirements !== null) {
             $unknown = array_diff(isset($entry['requires']) ? (array) $entry['requires'] : [], $this->requirements);
             if ($unknown !== []) {
-                return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Manifest case "%1$s" declares unknown requirement(s): %2$s.', Config::TEXT_DOMAIN), $entry['id'], implode(', ', $unknown)));
+                return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Manifest case "%1$s" declares unknown requirement(s): %2$s.', Config::TEXT_DOMAIN), $entry['id'], implode(', ', $unknown)));
             }
         }
 

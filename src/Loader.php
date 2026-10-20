@@ -8,11 +8,11 @@
  * suite once. This class must stay backwards compatible: whichever plugin
  * loads first declares it, even when a newer copy wins.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 
 final class Loader
 {
-    const PREFIX = 'Gnnpls\\SelfTest\\';
+    const PREFIX = 'MammothWP\\SelfTest\\';
 
     /**
      * Marks a Loader whose enabled() is off on production (0.7.0+).
@@ -83,6 +83,7 @@ final class Loader
          * the hook the way WP-CLI's add_wp_hook() does; plugin.php turns
          * pre-initialised $wp_filter entries into WP_Hook objects.
          */
+        // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Plugin API does not exist yet; see above.
         if (!isset($GLOBALS['wp_filter']) || !is_array($GLOBALS['wp_filter'])) {
             $GLOBALS['wp_filter'] = [];
         }
@@ -90,6 +91,7 @@ final class Loader
             'function'      => [self::class, 'boot'],
             'accepted_args' => 1,
         ];
+        // phpcs:enable WordPress.WP.GlobalVariablesOverride.Prohibited
     }
 
     /**
@@ -123,7 +125,10 @@ final class Loader
          *
          * @since 0.1.0
          */
-        do_action('mwp_self_test_booted', $path, self::version());
+        do_action('mmwp_self_test_booted', $path, self::version());
+        if (function_exists('do_action_deprecated')) {
+            do_action_deprecated('mwp_self_test_booted', [$path, self::version()], '1.0.0', 'mmwp_self_test_booted');
+        }
     }
 
     /**
@@ -160,9 +165,16 @@ final class Loader
          * @since 0.6.0 Default true regardless of environment.
          * @since 0.7.0 Default false on production.
          */
-        self::$enabled = function_exists('apply_filters')
-            ? (bool) apply_filters('mwp_self_test_enabled', $environment !== 'production', $environment)
-            : $environment !== 'production';
+        $default       = $environment !== 'production';
+        self::$enabled = $default;
+        if (function_exists('apply_filters')) {
+            // Not Compat\Hooks: this runs before the package autoloader exists.
+            $filtered = apply_filters('mmwp_self_test_enabled', $default, $environment);
+            if (function_exists('apply_filters_deprecated')) {
+                $filtered = apply_filters_deprecated('mwp_self_test_enabled', [$filtered, $environment], '1.0.0', 'mmwp_self_test_enabled');
+            }
+            self::$enabled = (bool) $filtered;
+        }
 
         return self::$enabled;
     }
