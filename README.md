@@ -1,4 +1,9 @@
-# Mammoth WP Self-Test
+<h1 align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+  <img alt="Mammoth WP Self-Test — Manifest-driven checks for your plugin, from wp-admin, WP-CLI, REST, Abilities or a pre-push hook." src="docs/assets/banner-light.svg" width="100%">
+</picture>
+</h1>
 
 A manifest-driven self-test suite for WordPress plugins. A plugin ships a
 `manifest.json` and a few case classes in its own folder; the package runs
@@ -16,6 +21,13 @@ on five surfaces:
 Several plugins can register manifests; the dashboard, commands and report
 show every case with the plugin it belongs to, and the dashboard can be
 filtered by plugin and by surface (REST / WP-CLI / Abilities).
+
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/diagram-dark.svg">
+  <img alt="How a plugin manifest runs through one runner and reaches five entry points and one report." src="docs/assets/diagram-light.svg" width="100%">
+</picture>
 
 ## Install in a plugin
 
