@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-`composer install` pulls the dev tools. Checks (mirrors `.github/workflows/lint.yml`, PHP 7.4 and 8.3 plus `composer validate --strict`):
+`composer install` pulls the dev tools. Checks (mirrors `.gitlab-ci.yml`, the only CI; GitHub is a push mirror and runs nothing; includes `composer validate --strict`):
 
 ```bash
 git ls-files -z -- "*.php" | xargs -0 -n1 php -l >/dev/null
@@ -44,4 +44,4 @@ Cases are exercised from a consumer plugin, e.g. `php bin/run.php --bootstrap=te
 - Versioning: bump `version.php` together with a CHANGELOG.md entry (Keep a Changelog, SemVer). The newest-copy-wins loader depends on `version.php` being correct. Do not create git tags.
 - The package intentionally ships no CI template for consumers (removed in 0.5.0); the consumer's pre-push hook is the gate.
 - Hosting: GitLab `mammothwp/wp-self-test` is the source of truth; `github.com/mammothwp/wp-self-test` is a push mirror (published on Packagist as `mammothwp/wp-self-test`).
-- `.gitattributes` keeps dev-only files (`CLAUDE.md`, `.github/`, `assets/sass/`) out of Composer dist archives; add new dev-only paths there.
+- `.gitattributes` keeps dev-only files (`CLAUDE.md`, `.gitlab-ci.yml`, `assets/sass/`) out of Composer dist archives; add new dev-only paths there.
