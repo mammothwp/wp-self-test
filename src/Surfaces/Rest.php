@@ -1,9 +1,10 @@
 <?php
 
-namespace Gnnpls\SelfTest\Surfaces;
+namespace MammothWP\SelfTest\Surfaces;
 
-use Gnnpls\SelfTest\Config;
-use Gnnpls\SelfTest\Runner;
+use MammothWP\SelfTest\Compat\Legacy;
+use MammothWP\SelfTest\Config;
+use MammothWP\SelfTest\Runner;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -14,20 +15,30 @@ if (!defined('ABSPATH')) {
  * only registered when the dashboard is enabled (non-production) and always
  * limited to Config::capability().
  *
- * Routes (namespace mwp-self-test/v1):
- *   GET  /cases?ids=a,b&plugin=x   → runner->cases()
- *   GET  /preview?ids=a,b&plugin=x → runner->preview()
- *   POST /run                      → runner->run()   {ids: [], cleanup: bool, plugin: string}
- *   POST /cleanup                  → runner->cleanup() {ids: []}
- *   GET  /report                   → runner->report()
+ * Routes (namespace mmwp/v1):
+ *   GET  /self-test/cases?ids=a,b&plugin=x   → runner->cases()
+ *   GET  /self-test/preview?ids=a,b&plugin=x → runner->preview()
+ *   POST /self-test/run                      → runner->run()   {ids: [], cleanup: bool, plugin: string}
+ *   POST /self-test/cleanup                  → runner->cleanup() {ids: []}
+ *   GET  /self-test/report                   → runner->report()
  *
- * @package Gnnpls\SelfTest
+ * Deprecated alias (one major version): the same routes without the
+ * `/self-test` segment under `mwp-self-test/v1`, answering with a
+ * `Deprecation: true` header.
+ *
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 final class Rest
 {
-    /** @var string */
-    private static $namespace = 'mwp-self-test/v1';
+    /** REST namespace. */
+    const NAMESPACE_CURRENT = 'mmwp/v1';
+
+    /** Route prefix inside the current namespace. */
+    const BASE = '/self-test';
+
+    /** Deprecated pre-1.0 namespace (routes have no base segment). */
+    const NAMESPACE_LEGACY = 'mwp-self-test/v1';
 
     /** @var Runner */
     private $runner;
@@ -43,8 +54,35 @@ final class Rest
         add_action('rest_api_init', [$this, 'register_routes']);
     }
 
-    /** @return void */
+    /**
+     * Register the current routes and, unless another copy owns it, the deprecated alias.
+     *
+     * @return void
+     *
+     * @since 1.0.0
+     */
     public function register_routes()
+    {
+        $this->register_routes_in(self::NAMESPACE_CURRENT, self::BASE);
+
+        if (Legacy::owned_elsewhere('Surfaces\\Rest')) {
+            return;
+        }
+
+        $this->register_routes_in(self::NAMESPACE_LEGACY, '');
+    }
+
+    /**
+     * Register the five routes under one namespace.
+     *
+     * @param string $namespace REST namespace.
+     * @param string $base      Route prefix ('' or '/self-test').
+     *
+     * @return void
+     *
+     * @since 1.0.0
+     */
+    private function register_routes_in($namespace, $base)
     {
         $ids_arg = [
             'ids' => [
@@ -68,21 +106,21 @@ final class Rest
             ],
         ];
 
-        register_rest_route(self::$namespace, '/cases', [
+        register_rest_route($namespace, $base . '/cases', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'cases'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/preview', [
+        register_rest_route($namespace, $base . '/preview', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'preview'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/run', [
+        register_rest_route($namespace, $base . '/run', [
             'methods'             => \WP_REST_Server::CREATABLE,
             'callback'            => [$this, 'run'],
             'permission_callback' => [$this, 'check_permission'],
@@ -98,14 +136,14 @@ final class Rest
             ],
         ]);
 
-        register_rest_route(self::$namespace, '/cleanup', [
+        register_rest_route($namespace, $base . '/cleanup', [
             'methods'             => \WP_REST_Server::CREATABLE,
             'callback'            => [$this, 'cleanup'],
             'permission_callback' => [$this, 'check_permission'],
             'args'                => $ids_arg,
         ]);
 
-        register_rest_route(self::$namespace, '/report', [
+        register_rest_route($namespace, $base . '/report', [
             'methods'             => \WP_REST_Server::READABLE,
             'callback'            => [$this, 'report'],
             'permission_callback' => [$this, 'check_permission'],
@@ -132,40 +170,61 @@ final class Rest
     public function check_permission()
     {
         if (!Config::ui_enabled()) {
-            return new \WP_Error('mwp_self_test_disabled', __('The self-test dashboard is not available on production.', Config::TEXT_DOMAIN), ['status' => 404]);
+            return new \WP_Error('mmwp_self_test_disabled', __('The self-test dashboard is not available on production.', Config::TEXT_DOMAIN), ['status' => 404]);
         }
 
         if (!current_user_can(Config::capability())) {
-            return new \WP_Error('mwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => is_user_logged_in() ? 403 : 401]);
+            return new \WP_Error('mmwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => is_user_logged_in() ? 403 : 401]);
         }
 
         return true;
     }
 
+    /**
+     * Wrap a payload as a response, flagging calls to the deprecated namespace.
+     *
+     * @param \WP_REST_Request $request Current request.
+     * @param mixed            $payload Runner result.
+     *
+     * @return \WP_REST_Response|\WP_Error
+     *
+     * @since 1.0.0
+     */
+    private function respond(\WP_REST_Request $request, $payload)
+    {
+        $response = rest_ensure_response($payload);
+        if (!is_wp_error($response) && strpos($request->get_route(), '/' . self::NAMESPACE_LEGACY) === 0) {
+            $response->header('Deprecation', 'true');
+            $response->header('Link', '</' . rest_get_url_prefix() . '/' . self::NAMESPACE_CURRENT . self::BASE . '>; rel="successor-version"');
+        }
+
+        return $response;
+    }
+
     public function cases(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->cases((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
+        return $this->respond($request, $this->runner->cases((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
     }
 
     public function preview(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->preview((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
+        return $this->respond($request, $this->runner->preview((array) $request->get_param('ids'), (string) $request->get_param('plugin')));
     }
 
     public function run(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup'), (string) $request->get_param('plugin')));
+        return $this->respond($request, $this->runner->run((array) $request->get_param('ids'), (bool) $request->get_param('cleanup'), (string) $request->get_param('plugin')));
     }
 
     public function cleanup(\WP_REST_Request $request)
     {
-        return rest_ensure_response($this->runner->cleanup((array) $request->get_param('ids')));
+        return $this->respond($request, $this->runner->cleanup((array) $request->get_param('ids')));
     }
 
-    public function report()
+    public function report(\WP_REST_Request $request)
     {
         $report = $this->runner->report();
 
-        return rest_ensure_response($report ?: ['results' => [], 'summary' => null, 'pending' => $this->runner->pending_ids()]);
+        return $this->respond($request, $report ?: ['results' => [], 'summary' => null, 'pending' => $this->runner->pending_ids()]);
     }
 }

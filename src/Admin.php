@@ -7,11 +7,11 @@
  * true. Markup comes from templates/dashboard.php, behaviour from
  * assets/self-test.js, both enqueued on this screen only.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 
 final class Admin
 {
-    const PAGE_SLUG = 'mwp-self-test';
+    const PAGE_SLUG = 'mmwp-self-test';
 
     /** @var Runner */
     private $runner;
@@ -69,9 +69,9 @@ final class Admin
 
         $version = Loader::version() ?: '0.0.0';
 
-        wp_enqueue_style('mwp-self-test', Config::asset_url('assets/self-test.css'), [], $version);
-        wp_enqueue_script('mwp-self-test', Config::asset_url('assets/self-test.js'), [], $version, true);
-        wp_localize_script('mwp-self-test', 'mwpSelfTest', [
+        wp_enqueue_style('mmwp-self-test', Config::asset_url('assets/self-test.css'), [], $version);
+        wp_enqueue_script('mmwp-self-test', Config::asset_url('assets/self-test.js'), [], $version, true);
+        wp_localize_script('mmwp-self-test', 'mmwpSelfTest', [
             'strings' => [
                 'running'      => __('Running…', Config::TEXT_DOMAIN),
                 'previewing'   => __('Loading preview…', Config::TEXT_DOMAIN),
@@ -96,7 +96,7 @@ final class Admin
     {
         $cases    = $this->runner->cases();
         $plugins  = $this->runner->registry()->plugins();
-        $rest_url = esc_url_raw(rest_url('mwp-self-test/v1'));
+        $rest_url = esc_url_raw(rest_url(Surfaces\Rest::NAMESPACE_CURRENT . Surfaces\Rest::BASE));
         $nonce    = wp_create_nonce('wp_rest');
         $error    = is_wp_error($cases) ? $cases->get_error_message() : '';
         $cases    = is_wp_error($cases) ? [] : $cases;

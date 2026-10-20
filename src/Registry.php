@@ -4,7 +4,7 @@
  *
  * A plugin registers once, from its own folder:
  *
- *     add_action('mwp_self_test_register', function ($registry) {
+ *     add_action('mmwp_self_test_register', function ($registry) {
  *         $registry->register('my-plugin', __DIR__ . '/self-test/manifest.json', [
  *             'label'        => 'My Plugin',
  *             'requirements' => ['abilities', 'logger'],   // optional: valid `requires` keys
@@ -14,11 +14,11 @@
  *
  * Case ids must be unique across every registered manifest.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -105,7 +105,7 @@ final class Registry
     public function definitions($plugin = '')
     {
         if ($this->plugins === []) {
-            return new \WP_Error('mwp_self_test_no_manifests', __('No plugin has registered a self-test manifest. Hook mwp_self_test_register and call $registry->register().', Config::TEXT_DOMAIN));
+            return new \WP_Error('mmwp_self_test_no_manifests', __('No plugin has registered a self-test manifest. Hook mmwp_self_test_register and call $registry->register().', Config::TEXT_DOMAIN));
         }
 
         $all = [];
@@ -121,14 +121,14 @@ final class Registry
 
             foreach ($definitions as $id => $entry) {
                 if (isset($all[$id])) {
-                    return new \WP_Error('mwp_self_test_manifest_invalid', sprintf(__('Self-test case id "%1$s" is declared by both "%2$s" and "%3$s".', Config::TEXT_DOMAIN), $id, $all[$id]['plugin'], $slug));
+                    return new \WP_Error('mmwp_self_test_manifest_invalid', sprintf(__('Self-test case id "%1$s" is declared by both "%2$s" and "%3$s".', Config::TEXT_DOMAIN), $id, $all[$id]['plugin'], $slug));
                 }
                 $all[$id] = $entry;
             }
         }
 
         if ($plugin !== '' && $all === [] && !isset($this->plugins[$plugin])) {
-            return new \WP_Error('mwp_self_test_unknown_plugin', sprintf(__('No self-test manifest is registered for "%s".', Config::TEXT_DOMAIN), $plugin));
+            return new \WP_Error('mmwp_self_test_unknown_plugin', sprintf(__('No self-test manifest is registered for "%s".', Config::TEXT_DOMAIN), $plugin));
         }
 
         return $all;
@@ -164,7 +164,7 @@ final class Registry
 
         $unknown = array_diff($ids, array_keys($cases));
         if ($unknown !== []) {
-            return new \WP_Error('mwp_self_test_unknown_case', sprintf(__('Unknown self-test case(s): %s.', Config::TEXT_DOMAIN), implode(', ', $unknown)));
+            return new \WP_Error('mmwp_self_test_unknown_case', sprintf(__('Unknown self-test case(s): %s.', Config::TEXT_DOMAIN), implode(', ', $unknown)));
         }
 
         return $cases;

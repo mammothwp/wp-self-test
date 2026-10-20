@@ -1,6 +1,8 @@
 <?php
 
-namespace Gnnpls\SelfTest;
+namespace MammothWP\SelfTest;
+
+use MammothWP\SelfTest\Compat\Hooks;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -9,14 +11,14 @@ if (!defined('ABSPATH')) {
 /**
  * The one implementation every surface calls.
  *
- * The dashboard's REST routes, `wp mwp self-test`, the mwp-self-test/*
+ * The dashboard's REST routes, `wp mmwp self-test`, the mmwp/self-test-*
  * abilities and bin/run.php (pre-push + CI) are thin wrappers around these
  * five methods: cases(), preview(), run(), cleanup(), report(). State (the
  * last report and the contexts still awaiting cleanup) is kept in one
  * option so "Remove test data" can run in a later request than the run
  * that created the data.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 final class Runner
@@ -176,7 +178,7 @@ final class Runner
          *
          * @since 0.1.0
          */
-        do_action('mwp_self_test_completed', $report);
+        Hooks::action('mmwp_self_test_completed', [$report]);
 
         return $report;
     }
@@ -384,13 +386,13 @@ final class Runner
         }
 
         if (!$this->is_cli_context()) {
-            return new \WP_Error('mwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => 403]);
+            return new \WP_Error('mmwp_self_test_forbidden', __('You are not allowed to run the self-tests.', Config::TEXT_DOMAIN), ['status' => 403]);
         }
 
         $admins = get_users(['role' => 'administrator', 'number' => 1, 'fields' => 'ID']);
 
         if (empty($admins)) {
-            return new \WP_Error('mwp_self_test_no_admin', __('No administrator user exists to run the self-tests as.', Config::TEXT_DOMAIN));
+            return new \WP_Error('mmwp_self_test_no_admin', __('No administrator user exists to run the self-tests as.', Config::TEXT_DOMAIN));
         }
 
         wp_set_current_user((int) $admins[0]);
@@ -407,7 +409,11 @@ final class Runner
     /** @return array{report: array|null, pending: array} */
     private function state()
     {
-        $state = get_option(Config::STATE_OPTION, []);
+        $state = get_option(Config::STATE_OPTION, null);
+        if ($state === null) {
+            $state = get_option(Config::LEGACY_STATE_OPTION, []);
+        }
+        $state = is_array($state) ? $state : [];
 
         return [
             'report'  => isset($state['report']) && is_array($state['report']) ? $state['report'] : null,

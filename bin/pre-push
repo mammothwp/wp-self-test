@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Generic pre-push hook shipped by gnnpls/wp-self-test.
+# Generic pre-push hook shipped by mammothwp/wp-self-test.
 #
 # Installed into a consumer repository by bin/install-hooks, which writes a
 # two-line shim at .githooks/pre-push that execs this file, and points
@@ -17,7 +17,7 @@
 #
 # `git push --no-verify` bypasses any client hook, so treat that as a deliberate decision.
 #
-# @package Gnnpls\SelfTest
+# @package MammothWP\SelfTest
 # @since   0.1.0
 
 set -uo pipefail

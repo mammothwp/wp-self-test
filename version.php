@@ -1,8 +1,8 @@
 <?php
 /**
- * Package version. Bump together with the git tag and CHANGELOG.md.
+ * Package version. Bump together with CHANGELOG.md.
  *
- * @package Gnnpls\SelfTest
+ * @package MammothWP\SelfTest
  * @since   0.1.0
  */
 
@@ -10,4 +10,4 @@ if (!defined('ABSPATH')) {
     return '0.0.0';
 }
 
-return '0.7.0';
+return '1.0.0';
