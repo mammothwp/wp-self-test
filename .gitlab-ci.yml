@@ -7,7 +7,9 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_TAG
       when: never
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH =~ /^(develop|main)$/
 
 variables:
   COMPOSER_CACHE_DIR: $CI_PROJECT_DIR/.cache/composer
@@ -19,7 +21,7 @@ cache:
 
 check:
   stage: check
-  image: registry.gitlab.motivar.io/motivar/ci/unified:latest
+  image: composer:2
   tags: [priority]
   script:
     - git ls-files -z -- '*.php' 'bin/run.php' 'bin/install-hooks' | xargs -0 -n1 php -l > /dev/null

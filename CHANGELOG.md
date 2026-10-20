@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CI runs on GitLab only (`.gitlab-ci.yml`, one `check` job: `php -l`, `composer validate --strict`, PHPUnit, PHPCS, PHPStan); GitHub is a push mirror. The GitHub Actions lint workflow and `.github/` are removed.
+- `.gitlab-ci.yml`: `check` job uses the public `composer:2` image; pipelines run for merge requests and the `develop` and `main` branches, never tags.
 
 ## [1.0.0] - 2026-10-20
 
