@@ -14,4 +14,3 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 // PHPUnit loads vendor/autoload.php before ABSPATH exists, so the guarded
 // "files" entries returned early; load them again now.
-require dirname(__DIR__) . '/compat.php';

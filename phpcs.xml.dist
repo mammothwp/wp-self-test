@@ -3,7 +3,6 @@
     <description>Coding standard for mammothwp/wp-self-test.</description>
 
     <file>bootstrap.php</file>
-    <file>compat.php</file>
     <file>version.php</file>
     <file>src</file>
     <file>bin</file>
