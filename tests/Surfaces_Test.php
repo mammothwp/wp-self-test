@@ -1,6 +1,6 @@
 <?php
 /**
- * REST and Abilities names, including the deprecated aliases.
+ * REST and Abilities names.
  *
  * @package MammothWP\SelfTest
  */
@@ -20,18 +20,17 @@ final class Surfaces_Test extends TestCase
         \Wp_Stub_State::reset();
     }
 
-    public function test_rest_routes_live_under_mmwp_v1_with_a_deprecated_alias()
+    public function test_rest_routes_live_under_mmwp_v1()
     {
         (new Rest(new Runner(new Registry())))->register_routes();
 
         $routes = \Wp_Stub_Registry::$routes;
         foreach (['cases', 'preview', 'run', 'cleanup', 'report'] as $route) {
             $this->assertContains('mmwp/v1/self-test/' . $route, $routes);
-            $this->assertContains('mwp-self-test/v1/' . $route, $routes);
         }
     }
 
-    public function test_abilities_use_the_new_names_and_keep_deprecated_ones()
+    public function test_abilities_use_the_mmwp_names()
     {
         Abilities::init(new Runner(new Registry()));
         Abilities::register_abilities();
@@ -39,9 +38,7 @@ final class Surfaces_Test extends TestCase
         $names = array_keys(\Wp_Stub_Registry::$abilities);
         foreach (['list-cases', 'preview', 'run', 'cleanup', 'get-report'] as $verb) {
             $this->assertContains('mmwp/self-test-' . $verb, $names);
-            $this->assertContains('mwp-self-test/' . $verb, $names);
         }
-        $this->assertStringContainsString('deprecated', \Wp_Stub_Registry::$abilities['mwp-self-test/run']['label']);
         $this->assertSame('mmwp-self-test', \Wp_Stub_Registry::$abilities['mmwp/self-test-run']['category']);
     }
 }
