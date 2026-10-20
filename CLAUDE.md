@@ -44,4 +44,5 @@ Cases are exercised from a consumer plugin, e.g. `php bin/run.php --bootstrap=te
 - Versioning: bump `version.php` together with a CHANGELOG.md entry (Keep a Changelog, SemVer). The newest-copy-wins loader depends on `version.php` being correct. Do not create git tags.
 - The package intentionally ships no CI template for consumers (removed in 0.5.0); the consumer's pre-push hook is the gate.
 - Hosting: GitLab `mammothwp/wp-self-test` is the source of truth; `github.com/mammothwp/wp-self-test` is a push mirror (published on Packagist as `mammothwp/wp-self-test`).
+- Branches: `develop` is the working branch (default); `main` is release-only and the only branch mirrored to GitHub. CI runs for merge requests and on `develop` and `main`, never on tags.
 - `.gitattributes` keeps dev-only files (`CLAUDE.md`, `.gitlab-ci.yml`, `assets/sass/`) out of Composer dist archives; add new dev-only paths there.
