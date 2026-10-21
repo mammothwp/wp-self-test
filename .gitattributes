@@ -10,3 +10,10 @@
 /phpcs.xml.dist    export-ignore
 /phpstan.neon.dist export-ignore
 /docs              export-ignore
+
+# Node side of the browser layer (@mammothwp/wp-self-test-e2e): installed by
+# npm straight from the git repo, never part of the Composer dist archive.
+/package.json      export-ignore
+/package-lock.json export-ignore
+/e2e               export-ignore
+/node_modules      export-ignore

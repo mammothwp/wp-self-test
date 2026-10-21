@@ -16,6 +16,7 @@ on five surfaces:
 | REST | `mmwp/v1/self-test/{cases,preview,run,cleanup,report}` (same gate) |
 | WP-CLI | `wp mmwp self-test [<slug>]` and `wp mmwp self-test list\|preview\|run\|cleanup\|report` |
 | Abilities API | `mmwp/self-test-{list-cases,preview,run,cleanup,get-report}` (WP 6.9+) |
+| Browser | Playwright admin crawl and flow tests, `wp mmwp self-test run --layer=browser` (non-production only) |
 | Pre-push hook | `bin/pre-push`, `bin/run.php` |
 
 Several plugins can register manifests; the dashboard, commands and report
@@ -161,6 +162,100 @@ throws instead of exiting. Command classes that `return` early when
 `WP_CLI` is missing are declared again by the `cli_loaders` callables a
 plugin passes to `register()`; the runner calls them once before a run.
 
+## Browser layer
+
+The `rest`, `cli`, `ability` and `core` layers never load wp-admin in a
+browser, so JavaScript errors, screens that fail to render and broken form
+flows go unnoticed. The `browser` layer runs [Playwright](https://playwright.dev)
+against the real site through the same manifest, runner and pre-push hook.
+It never runs on production and nothing of it loads on front-end requests.
+
+### Add it to a plugin
+
+1. Add the Node package straight from this git repo (no npm registry), plus Playwright, next to the plugin's `manifest.json` (the folder with the `node_modules` the runner finds is searched from the manifest upwards):
+
+   ```json
+   {
+       "devDependencies": {
+           "@mammothwp/wp-self-test-e2e": "git+https://gitlab.motivar.io/mammothwp/wp-self-test.git#<tag>",
+           "@playwright/test": "^1.50.0"
+       }
+   }
+   ```
+
+   Then `npm install` and `npx playwright install chromium`. The `package.json` sits at the repo root with a `files` whitelist (only `e2e/`), and every Node file is `export-ignore`d, so the Composer copy in `lib/` never contains it.
+
+2. Declare browser checks on a case in `manifest.json`:
+
+   ```json
+   {
+       "id": "admin-smoke",
+       "label": "Admin smoke",
+       "class": "MammothWP\\SelfTest\\Browser_Case",
+       "category": "admin",
+       "browser": {
+           "crawl": true,
+           "specs": ["self-test/e2e/coupon-flow.spec.js"],
+           "allow": {
+               "console": ["Failed to load resource.*gravatar"],
+               "requests": ["/wp-json/some/v1/known-404"],
+               "pages": ["^admin\\.php\\?page=legacy-screen$"]
+           },
+           "timeout": 300
+       }
+   }
+   ```
+
+   | Key | Meaning |
+   |---|---|
+   | `crawl` | `true` opens every page of the admin menu inventory (GET only) and requires HTTP 200, no `Fatal error`/`Warning`/`Notice`/`Deprecated`/`WordPress database error`/"critical error" markup, no console errors and no `>= 400` wp-json or admin-ajax responses. |
+   | `specs` | Playwright spec files, relative to the folder with `node_modules` (no `..`). |
+   | `allow` | Per-plugin allow-lists of regular-expression sources: `console` (messages), `requests` (`"STATUS URL"`), `pages` (inventory paths to skip). |
+   | `timeout` | Seconds the Node runner may take (default 300). |
+
+   A case with `browser` automatically lists the `browser` layer (add `"layers": ["rest"]` as before for the other layers). Use `Browser_Case` for browser-only cases, or your own `Case_Base` subclass to combine PHP phases with browser checks. Put `crawl` in one case only; every case with `browser` starts its own Node run.
+
+3. Write a flow test, e.g. [`docs/examples/coupon-flow.spec.js`](docs/examples/coupon-flow.spec.js). The browser is already logged in:
+
+   ```js
+   const { test, expect, openAdminPage, fillForm, submitForm, expectNotice, expectNoBrowserErrors } = require('@mammothwp/wp-self-test-e2e');
+
+   test('create a coupon', async ({ page, collector }) => {
+       await openAdminPage(page, 'admin.php?page=ewp-coupons&action=new');
+       await fillForm(page, { code: 'E2E10', amount: '10' });
+       await submitForm(page, { button: 'Save' });
+       await expectNotice(page, { type: 'success' });
+       expectNoBrowserErrors(collector);
+   });
+   ```
+
+   Helpers: `openAdminPage(page, path)` (200 and no PHP error markup), `fillForm(page, {name|id|label: value})`, `submitForm(page, {button})`, `expectNotice(page, {type, text})`, the `collector` fixture (console errors, page errors, wp-json/admin-ajax responses) and `expectNoBrowserErrors(collector, allow)`. Flow tests that create data must delete it themselves.
+
+### Run it locally
+
+| What | Command |
+|---|---|
+| Browser layer only | `wp mmwp self-test run --layer=browser` (DDEV: `ddev wp mmwp self-test run --layer=browser`) |
+| One plugin | `wp mmwp self-test run --layer=browser --plugin=<slug>` |
+| Everything incl. browser | `wp mmwp self-test run` |
+| Without WP-CLI | `php bin/run.php --layer=browser --plugin=<slug>` |
+
+The runner shells out to Node only when Node and `@mammothwp/wp-self-test-e2e` are found (in DDEV, give the web container Node via `nodejs_version` and run `ddev exec npx playwright install --with-deps chromium`); otherwise the browser checks are reported as **skipped** with the reason, never as failures. `MMWP_E2E_WORKERS` (default 4) sets the parallel pages; `MMWP_E2E_STRICT_TLS=1` turns on TLS verification (off by default because DDEV's local CA is often not trusted by Chromium). Pages are crawled in parallel (4 workers by default) to keep a crawl of ~100 pages under about 2 minutes; raise `MMWP_E2E_WORKERS` if yours is slower.
+
+`bin/pre-push` runs the browser layer after the tests when `package.json` depends on the e2e package: through DDEV, or through `MMWP_SELF_TEST_BROWSER_CMD` (any command, e.g. `wp --path=/srv/site mmwp self-test run --layer=browser`). A stopped DDEV or missing Node prints a warning and skips; a failing browser check blocks the push; `MMWP_SELF_TEST_BROWSER=0` turns the step off.
+
+### Admin menu inventory
+
+`GET mmwp/v1/self-test/admin-menu` (cookie + `X-WP-Nonce`, same capability and `mmwp_self_test_ui_enabled` gate as the dashboard routes) returns `{admin_url, pages: [{title, url, path, parent}], excluded, source}` for the current user. Many plugins register their pages only when `is_admin()` is true, so the menu is snapshotted on `admin_menu` in real admin requests (`source: snapshot`) and the crawler loads one admin page first; without a snapshot the route falls back to the live globals. URLs containing `action=`, `nonce`, `customize.php`, `update.php`, `update-core.php`, `plugin-install.php`, `theme-install.php`, `post-new.php` (it creates an auto-draft) or `logout` are excluded; change the list with the `mmwp_self_test_admin_menu_exclusions` filter.
+
+### Security model
+
+- The runner issues a random 256-bit token for the acting user (`Login_Token::issue()`), stored only as a SHA-256 hash in the `mmwp_self_test_login_tokens` option, valid for 120 seconds and redeemable once.
+- It reaches the Node process through an environment variable (not argv, so not in `ps`), and Node exchanges it with `POST mmwp/v1/self-test/browser-login` for the normal auth cookies. Spent, expired, unknown or wrong tokens get a 403.
+- After the run, `Login_Token::revoke_all()` destroys every session the exchange created and deletes all records, also when the run fails.
+- Never issued or redeemed when the environment is `production` (`WP_ENV`, else `wp_get_environment_type()`), whatever `mmwp_self_test_enabled` / `mmwp_self_test_ui_enabled` return; the routes are also only registered when the dashboard gate is on, and the user must still hold the self-test capability.
+- Tokens exist only while a browser run is in progress; there is no standing back door and no password handling.
+
 ## The pre-push hook in a consumer
 
 ```json
@@ -201,6 +296,8 @@ a bootstrap can point `phpunit.xml` and `bin/run.php` at
 | `mmwp_self_test_abilities_available` | filter | `(bool $available)` |
 | `mmwp_self_test_ability_definitions` | filter | `(array $definitions)` |
 | `mmwp_self_test_asset_url` | filter | `(string $url, string $relative)` |
+| `mmwp_self_test_admin_menu_exclusions` | filter | `(string[] $needles)` — substrings that keep an admin URL out of the browser crawl (since 2.1.0). |
+| `mmwp_self_test_browser_command` | filter | `(string[] $command, string $package, array $definition)` — how the Node runner is started (since 2.1.0). |
 
 State (last report, contexts awaiting cleanup) lives in the
 `mmwp_self_test_state` option.

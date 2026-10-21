@@ -35,12 +35,15 @@ namespace {
         public static $hooks      = [];
         public static $options    = [];
         public static $deprecated = [];
+        public static $environment = 'local';
 
         public static function reset()
         {
+            self::$environment = 'local';
             self::$hooks      = [];
             self::$options    = [];
             self::$deprecated = [];
+            \WP_Session_Tokens::$destroyed = [];
             Wp_Stub_Registry::reset();
             \WP_CLI\StubRecorder::reset();
             \WP_CLI\StubRecorder::$commands = [];
@@ -195,6 +198,70 @@ namespace {
     {
         Wp_Stub_State::$options[$name] = $value;
         return true;
+    }
+
+    function wp_get_environment_type()
+    {
+        return Wp_Stub_State::$environment;
+    }
+
+    function user_can($user_id, $capability)
+    {
+        return true;
+    }
+
+    function trailingslashit($value)
+    {
+        return rtrim((string) $value, '/\\') . '/';
+    }
+
+    function admin_url($path = '')
+    {
+        return 'https://example.test/wp-admin/' . ltrim($path, '/');
+    }
+
+    function rest_url($path = '')
+    {
+        return 'https://example.test/wp-json/' . ltrim($path, '/');
+    }
+
+    // phpcs:disable WordPress.WP.AlternativeFunctions
+    function wp_strip_all_tags($text)
+    {
+        return trim(strip_tags(preg_replace('@<(script|style)[^>]*?>.*?</\\1>@si', '', (string) $text)));
+    }
+
+    function wp_json_encode($data)
+    {
+        return json_encode($data);
+    }
+    // phpcs:enable WordPress.WP.AlternativeFunctions
+
+    function get_transient($name)
+    {
+        return Wp_Stub_State::$options['_transient_' . $name] ?? false;
+    }
+
+    function set_transient($name, $value, $ttl = 0)
+    {
+        Wp_Stub_State::$options['_transient_' . $name] = $value;
+        return true;
+    }
+
+    /** Records destroyed sessions. */
+    class WP_Session_Tokens
+    {
+        public static $destroyed = [];
+
+        public static function get_instance($user_id)
+        {
+            return new self();
+        }
+
+        public function destroy($token)
+        {
+            self::$destroyed[] = $token;
+        }
     }
 
     function delete_option($name)
