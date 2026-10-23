@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const { adminUrlFor } = require('./env');
+const { restEndpoint, readJson } = require('./rest');
 const { DEFAULT_EXCLUSIONS, pagesFromAdminMenuHtml, filterByPlugin, frontPage } = require('./inventory');
 
 /**
@@ -34,9 +35,12 @@ function ignoreTls() {
  * @returns {Promise<void>}
  */
 async function loginWithToken(context, config, token) {
-  const login = await context.post(`${config.rest_url}browser-login`, { form: { token } });
-  if (!login.ok()) {
-    throw new Error(`Login token exchange failed (HTTP ${login.status()}): ${(await login.text()).slice(0, 200)}`);
+  const response = await context.post(restEndpoint(config, 'browser-login'), { form: { token } });
+  const result = await readJson(response);
+
+  if (!response.ok() || !result.isJson) {
+    const hint = result.missing || !result.isJson ? ' The self-test REST routes are not available on this site (is wp-self-test active? Use password login with MMWP_E2E_ALLOW_PASSWORD_LOGIN=1 on throwaway CI sites).' : '';
+    throw new Error(`Login token exchange failed: ${result.description}.${hint}`);
   }
 }
 
@@ -81,17 +85,19 @@ async function fetchInventory(context, config) {
 
   const nonceResponse = await context.get(adminUrlFor(config.admin_url, 'admin-ajax.php?action=rest-nonce'));
   const nonce = nonceResponse.ok() ? (await nonceResponse.text()).trim() : '';
-  const response = await context.get(`${config.rest_url}admin-menu`, { headers: { 'X-WP-Nonce': nonce } });
+  const response = await context.get(restEndpoint(config, 'admin-menu'), { headers: { 'X-WP-Nonce': nonce } });
+  const result = await readJson(response);
 
-  if (response.ok()) {
-    return { ...(await response.json()), source: 'rest' };
+  if (response.ok() && result.isJson && Array.isArray(result.json.pages)) {
+    return { ...result.json, source: 'rest' };
   }
 
-  if (response.status() !== 404) {
-    throw new Error(`Admin menu inventory failed (HTTP ${response.status()}): ${(await response.text()).slice(0, 200)}`);
+  // No usable route (plain permalinks, wp-self-test not installed): scrape the menu instead.
+  if (!result.isJson || result.missing) {
+    return { pages: pagesFromAdminMenuHtml(html, config.admin_url.replace(/\/?$/, '/'), DEFAULT_EXCLUSIONS), source: 'html' };
   }
 
-  return { pages: pagesFromAdminMenuHtml(html, config.admin_url.replace(/\/?$/, '/'), DEFAULT_EXCLUSIONS), source: 'html' };
+  throw new Error(`Admin menu inventory failed: ${result.description}`);
 }
 
 /**

@@ -19,11 +19,14 @@ const PAGES = {
 /**
  * Start the fake site.
  *
- * @param {{token: string, extraPages?: string[]}} options Accepted token and extra inventory paths.
+ * Options: `plain` serves REST only through `?rest_route=` (plain permalinks: `/wp-json/...` returns the HTML front page);
+ * `noRest` removes the self-test routes (`'html'` answers them with an HTML page instead of a JSON 404).
+ *
+ * @param {{token: string, extraPages?: string[], plain?: boolean, noRest?: boolean|string}} options Accepted token and behaviour.
  * @returns {Promise<{url: string, close: Function, logins: number}>}
  */
 function start(options) {
-  const state = { logins: 0 };
+  const state = { logins: 0, requests: [] };
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const pages = Object.assign({}, PAGES, options.pages || {});
@@ -33,7 +36,23 @@ function start(options) {
       res.end(body);
     };
 
-    if (url.pathname === '/wp-json/mmwp/v1/self-test/browser-login' && req.method === 'POST') {
+    const restRoute = url.searchParams.get('rest_route');
+    const prefix = '/mmwp/v1/self-test/';
+    let route = '';
+    if (restRoute !== null && restRoute.startsWith(prefix)) {
+      route = restRoute.slice(prefix.length);
+    } else if (!options.plain && url.pathname.startsWith(`/wp-json${prefix}`)) {
+      route = url.pathname.slice(`/wp-json${prefix}`.length);
+    }
+    state.requests.push(url.pathname + url.search);
+
+    if (route !== '' && options.noRest) {
+      return options.noRest === 'html'
+        ? send(200, '<!DOCTYPE html><html><body>Not a REST endpoint</body></html>')
+        : send(404, '{"code":"rest_no_route"}', 'application/json');
+    }
+
+    if (route === 'browser-login' && req.method === 'POST') {
       let body = '';
       req.on('data', (chunk) => { body += chunk; });
       req.on('end', () => {
@@ -63,12 +82,16 @@ function start(options) {
       return;
     }
 
-    if (url.pathname === '/') {
+    if (url.pathname === '/' && route === '') {
       return send(200, options.front || '<html><body><h1>Front</h1></body></html>');
     }
 
     if (url.pathname === '/api/boom') {
       return send(500, 'boom', 'text/plain');
+    }
+
+    if (options.plain && url.pathname.startsWith('/wp-json/')) {
+      return send(200, '<!DOCTYPE html><html><body>front page</body></html>');
     }
 
     if (url.pathname === '/wp-json/demo/v1/missing') {
@@ -83,10 +106,7 @@ function start(options) {
       return send(200, 'nonce123', 'text/plain');
     }
 
-    if (url.pathname === '/wp-json/mmwp/v1/self-test/admin-menu') {
-      if (options.noRest) {
-        return send(404, '{"code":"rest_no_route"}', 'application/json');
-      }
+    if (route === 'admin-menu') {
       if (req.headers['x-wp-nonce'] !== 'nonce123') {
         return send(401, '{}', 'application/json');
       }

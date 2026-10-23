@@ -265,7 +265,7 @@ npx mmwp-e2e crawl --url="$WP_SITE_URL" --user=admin --password="$WP_ADMIN_PASSW
 | `--only-plugin` | `MMWP_E2E_ONLY_PLUGIN` | Crawl only admin pages whose URL or parent menu slug contains the slug (`-`/`_` alike). The front page is always crawled. |
 | `--allow-console`, `--allow-requests`, `--allow-pages` | `MMWP_E2E_ALLOW_CONSOLE`, `_REQUESTS`, `_PAGES` (comma-separated) | Allow-lists of regular-expression sources; flags are repeatable. |
 | `--spec` | | Also run a flow spec (relative to the working directory); repeatable. |
-| `--rest-url` | | Base of the `mmwp/v1/self-test/` REST routes if not under `/wp-json/`. |
+| `--rest-url` | | Base of the `mmwp/v1/self-test/` REST routes. Default `<url>/?rest_route=/mmwp/v1/self-test/`, which works with any permalink setting. A missing route falls back to scraping the admin menu. |
 | `--json`, `--junit` | `MMWP_E2E_RESULTS`, `MMWP_E2E_JUNIT` | Results JSON (default `mmwp-e2e-results.json`) and JUnit XML (omitted when unset). |
 | `--workers` | `MMWP_E2E_WORKERS` | Parallel pages, default 4. |
 

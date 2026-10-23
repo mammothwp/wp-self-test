@@ -99,7 +99,7 @@ test('a refused login token produces a failing check, not a crash', { skip: skip
     const { status, results } = await runRunner(site.url, {}, 'wrong');
 
     assert.strictEqual(status, 1);
-    assert.match(results.checks[0].detail, /Login token exchange failed \(HTTP 403\)/);
+    assert.match(results.checks[0].detail, /Login token exchange failed: .*\(HTTP 403, content-type: application\/json\)/);
   } finally {
     site.close();
   }
@@ -160,7 +160,7 @@ test('CLI: crawls front page and scraped menu, fails on 5xx, page errors, writes
     'boom.php': '<h1>Boom</h1><script>fetch("/api/boom")</script>',
     'throws.php': '<h1>Throws</h1><script>setTimeout(() => { throw new Error("uncaught in page"); }, 0)</script>',
   };
-  const site = await fake.start({ token: 'x', noRest: true, pages, front: '<html><body><h1>Front</h1><script>console.error("front broke")</script></body></html>' });
+  const site = await fake.start({ token: 'x', plain: true, noRest: 'html', pages, front: '<html><body><h1>Front</h1><script>console.error("front broke")</script></body></html>' });
 
   try {
     const { status, results, junit } = await runCli([`--url=${site.url}`, '--user=admin', '--password=secret', '--allow-pages=^(warn|console|noisy|rest)\\.php$'], { MMWP_E2E_ALLOW_PASSWORD_LOGIN: '1' });
@@ -172,6 +172,9 @@ test('CLI: crawls front page and scraped menu, fails on 5xx, page errors, writes
     assert.match(results.checks.find((c) => c.label === 'crawl throws.php').detail, /uncaught in page/);
     assert.match(results.checks.find((c) => c.label === 'crawl (front page)').detail, /front broke/);
     assert.match(junit, /<failure message=/);
+    assert.ok(site.state.requests.some((r) => r.includes('rest_route=/mmwp/v1/self-test/admin-menu')), 'tries the rest_route inventory');
+    assert.ok(!site.state.requests.some((r) => r.startsWith('/wp-json/mmwp')), 'never uses /wp-json/ for self-test routes');
+    assert.ok(!site.state.requests.some((r) => r.includes('browser-login')), 'password login never touches the self-test REST route');
     assert.ok(!results.checks.some((c) => c.label.includes('plugins.php') || c.label.includes('example.org')));
   } finally {
     site.close();
@@ -186,6 +189,49 @@ test('CLI: --only-plugin narrows the admin pages; token login works', { skip: sk
 
     assert.strictEqual(status, 0, JSON.stringify(results));
     assert.strictEqual(results.pages, 2);
+  } finally {
+    site.close();
+  }
+});
+
+test('CLI: plain permalinks, routes missing (JSON 404): password login and HTML-scrape inventory', { skip: skip || false, timeout: 120000 }, async () => {
+  const site = await fake.start({ token: 'x', plain: true, noRest: true });
+
+  try {
+    const { status, results } = await runCli([`--url=${site.url}`, '--user=admin', '--password=secret', '--only-plugin=clean'], { MMWP_E2E_ALLOW_PASSWORD_LOGIN: '1' });
+
+    assert.strictEqual(status, 0, JSON.stringify(results));
+    assert.strictEqual(results.pages, 2);
+    assert.ok(!site.state.requests.some((r) => r.includes('browser-login')));
+  } finally {
+    site.close();
+  }
+});
+
+test('CLI: plain permalinks with routes: token login and REST inventory through ?rest_route=', { skip: skip || false, timeout: 120000 }, async () => {
+  const site = await fake.start({ token: 'good-token', plain: true });
+
+  try {
+    const { status, results } = await runCli([`--url=${site.url}`, '--token=good-token', '--only-plugin=clean'], {});
+
+    assert.strictEqual(status, 0, JSON.stringify(results));
+    assert.strictEqual(results.pages, 2);
+    assert.ok(site.state.requests.includes('/?rest_route=/mmwp/v1/self-test/browser-login'));
+    assert.ok(!site.state.requests.some((r) => r.startsWith('/wp-json/mmwp')));
+  } finally {
+    site.close();
+  }
+});
+
+test('CLI: a token login against a site without the routes names URL, status and content-type', { skip: skip || false, timeout: 60000 }, async () => {
+  const site = await fake.start({ token: 'x', plain: true, noRest: 'html' });
+
+  try {
+    const { status, results } = await runCli([`--url=${site.url}`, '--token=x'], {});
+
+    assert.strictEqual(status, 1);
+    assert.match(results.checks[0].detail, /Login token exchange failed: .*rest_route=\/mmwp\/v1\/self-test\/browser-login \(HTTP 200, content-type: text\/html/);
+    assert.doesNotMatch(results.checks[0].detail, /Unexpected token/);
   } finally {
     site.close();
   }

@@ -41,7 +41,7 @@ async function main() {
     root: process.cwd(),
     site_url: site,
     admin_url: `${site}/wp-admin/`,
-    rest_url: options.restUrl || `${site}/wp-json/mmwp/v1/self-test/`,
+    rest_url: options.restUrl,
     browser: { crawl: true, specs: options.specs, allow: options.allow, timeout: 300 },
   };
 

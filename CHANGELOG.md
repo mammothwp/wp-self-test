@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-10-23
+
+Originating request: `mmwp-e2e crawl` aborted in 2 s on the plugin CI runner (admin-terms-acceptance, job 453998) with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`: the site used plain permalinks (`/wp-json/` is not routed) and the plugin's built zip does not contain wp-self-test, so the `mmwp/v1/self-test/*` routes did not exist.
+
+### Fixed
+- The Node side calls every REST route through `?rest_route=/mmwp/v1/self-test/...`, which works with any permalink setting. `--rest-url` still overrides the base.
+- REST responses are checked (status, content-type) before parsing. A missing or non-JSON `admin-menu` route falls back to scraping `#adminmenu` instead of failing the run.
+- Unusable responses are reported with URL, HTTP status and content-type; a token login against a site without the routes says so and points at password login.
+- Password login only uses `/wp-login.php` and never touches a self-test REST route.
+
+### Added
+- Tests: `rest.js` unit tests, and fake-site integration tests for plain permalinks without self-test routes (HTML and JSON 404), plain permalinks with routes, and pretty permalinks with routes.
+
 ## [2.1.0] - 2026-10-23
 
 Originating request: add a `browser` layer so plugins (motivar/extend-wp, filox) get repeatable Playwright admin smoke tests through the existing manifest, runner and pre-push hook. wp-admin was never loaded in a browser by the rest/cli/ability/core layers, so JavaScript errors, screens that fail to render and broken form flows went unnoticed (found by hand on the filox DDEV site on 2026-10-21).
