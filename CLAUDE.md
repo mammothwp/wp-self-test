@@ -15,6 +15,7 @@ git ls-files -z -- "*.php" | xargs -0 -n1 php -l >/dev/null
 vendor/bin/phpunit      # tests/ uses an in-memory WordPress stub (tests/wp-stubs.php)
 vendor/bin/phpcs        # WPCS, PrefixAllGlobals = mmwp / MammothWP
 vendor/bin/phpstan analyse --memory-limit=512M
+npm test                # Node side of the browser layer (e2e/); needs @playwright/test for the integration tests
 ```
 
 Cases are exercised from a consumer plugin, e.g. `php bin/run.php --bootstrap=tests/bootstrap.php --autoload=tests/vendor/autoload.php [--plugin=<slug>] [case,ids]` run from the consumer's root, or `wp mmwp self-test run` on a site.
@@ -34,6 +35,8 @@ Cases are exercised from a consumer plugin, e.g. `php bin/run.php --bootstrap=te
 **Boot flow.** `Self_Test::boot()` loads `Wp_Cli_Shim.php` when needed, fires `mmwp_self_test_register` at `init` 0 (consumers call `Registry::register()`), attaches `Surfaces\Cli` and `Surfaces\Abilities` always, and `Surfaces\Rest` + `Admin` (renders `templates/dashboard.php` with `assets/`) only when the UI is enabled.
 
 **Execution.** `Registry` holds `Manifest`s (each validates entries; case ids are unique across plugins) and instantiates case classes. `Runner` drives the four `Case_Base` phases — `preview()`, `run()` → JSON-serialisable context, `validate($context)` → `check()`/`skip()` rows, `cleanup($context)` — and persists the last report plus contexts awaiting cleanup in the `mmwp_self_test_state` option so cleanup can happen in a later request. All surfaces are thin wrappers over `Runner`.
+
+**Browser layer (2.1.0).** A case may declare `browser` (crawl/specs/allow/timeout; validated and normalised in `Manifest`, which also adds the `browser` layer). `Runner::run()` appends the checks from `Browser\Browser_Runner`, which shells out to the Node package `@mammothwp/wp-self-test-e2e` (repo-root `package.json`, code in `e2e/`, all `export-ignore`d) when Node and the package exist, else reports a skip. Login is `Browser\Login_Token` (hashed, single use, revoked after the run, never on `production`) redeemed at `POST mmwp/v1/self-test/browser-login`; the crawler's page list comes from `GET .../admin-menu` (`Browser\Menu_Inventory`). Node tests: `npm i --no-save @playwright/test && npm test` (integration tests skip without Chromium).
 
 **WP_CLI shim.** Cases call CLI handlers in-process. Outside a real `wp` process (dashboard, PHPUnit, `bin/run.php`) `src/Wp_Cli_Shim.php` provides a minimal `WP_CLI` that records output and throws instead of exiting; consumers' `cli_loaders` re-declare command classes that returned early when `WP_CLI` was missing.
 

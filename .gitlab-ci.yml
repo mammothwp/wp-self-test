@@ -2,6 +2,7 @@
 # GitHub lint workflow: syntax, composer.json, PHPUnit, PHPCS, PHPStan.
 stages: [check]
 
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -30,3 +31,13 @@ check:
     - vendor/bin/phpunit
     - vendor/bin/phpcs
     - vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+# Node side of the browser layer (e2e/): unit tests on saved HTML/console
+# fixtures, plus the crawler against a fake site in real Chromium.
+e2e:
+  stage: check
+  image: mcr.microsoft.com/playwright:v1.64.1-noble
+  tags: [priority]
+  script:
+    - npm install --no-save --no-audit --no-fund @playwright/test@1.64.1
+    - npm test

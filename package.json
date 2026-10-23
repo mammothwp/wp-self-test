@@ -1,0 +1,33 @@
+{
+  "name": "@mammothwp/wp-self-test-e2e",
+  "version": "2.1.0",
+  "description": "Playwright runner and helpers for the browser layer of mammothwp/wp-self-test: admin crawl and plugin flow tests.",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://mammothwp.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mammothwp/wp-self-test.git"
+  },
+  "main": "e2e/index.js",
+  "bin": {
+    "mmwp-e2e": "e2e/bin/cli.js",
+    "mmwp-self-test-e2e": "e2e/bin/run.js"
+  },
+  "files": [
+    "e2e"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"e2e/test/*.test.js\""
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.40"
+  },
+  "peerDependenciesMeta": {
+    "@wordpress/e2e-test-utils-playwright": {
+      "optional": true
+    }
+  }
+}
