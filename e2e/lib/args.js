@@ -20,7 +20,7 @@ Site and login (flags win over environment variables):
 Scope:
   --only-plugin=<slug>    Only admin pages whose URL or parent menu slug contains <slug>
                           (the front page is always crawled)   (MMWP_E2E_ONLY_PLUGIN)
-  --rest-url=<url>        mmwp/v1/self-test/ REST base (default <url>/wp-json/mmwp/v1/self-test/)
+  --rest-url=<url>        mmwp/v1/self-test/ REST base (default <url>/?rest_route=/mmwp/v1/self-test/, any permalinks)
   --allow-console=<re>    Ignore console errors matching the regex (repeatable)   (MMWP_E2E_ALLOW_CONSOLE, comma-separated)
   --allow-requests=<re>   Ignore failed "STATUS URL" requests matching (repeatable) (MMWP_E2E_ALLOW_REQUESTS)
   --allow-pages=<re>      Skip inventory paths matching (repeatable)                (MMWP_E2E_ALLOW_PAGES)
