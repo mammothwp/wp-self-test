@@ -43,14 +43,15 @@ test('console errors are reported unless allow-listed', () => {
   assert.deepStrictEqual(allowed, []);
 });
 
-test('only failed wp-json and admin-ajax calls count, not other 404s', () => {
+test('failed wp-json/admin-ajax calls and any 5xx count, not other 4xx', () => {
   const problems = evaluatePage(page({ requests: observed.requests }), {});
   assert.deepStrictEqual(problems, [
     'failed request: 404 https://demo.test/wp-json/ewp/v1/items/9',
     'failed request: 500 https://demo.test/wp-admin/admin-ajax.php',
+    'failed request: 502 https://demo.test/wp-content/plugins/demo/render.php',
   ]);
 
-  assert.deepStrictEqual(evaluatePage(page({ requests: observed.requests }), { requests: ['items/9', 'admin-ajax'] }), []);
+  assert.deepStrictEqual(evaluatePage(page({ requests: observed.requests }), { requests: ['items/9', 'admin-ajax', 'render\\.php'] }), []);
 });
 
 test('isApiRequest recognises pretty and plain REST routes', () => {

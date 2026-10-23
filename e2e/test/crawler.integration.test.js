@@ -69,8 +69,8 @@ test('crawler reports the broken pages and passes the clean ones', { skip: skip 
     const failed = results.checks.filter((c) => c.status === 'fail').map((c) => c.label).sort();
 
     assert.strictEqual(status, 1);
-    assert.strictEqual(results.pages, 5);
-    assert.deepStrictEqual(failed, ['Admin crawl: 5 page(s)', 'crawl console.php', 'crawl noisy.php', 'crawl rest.php', 'crawl warn.php']);
+    assert.strictEqual(results.pages, 6);
+    assert.deepStrictEqual(failed, ['Admin crawl: 6 page(s)', 'crawl console.php', 'crawl noisy.php', 'crawl rest.php', 'crawl warn.php']);
     assert.match(results.checks.find((c) => c.label === 'crawl warn.php').detail, /Warning: Undefined variable/);
     assert.match(results.checks.find((c) => c.label === 'crawl rest.php').detail, /failed request: 404 .*\/wp-json\/demo\/v1\/missing/);
   } finally {
@@ -115,6 +115,77 @@ test('plugin flow specs run through the helpers and fold into the results', { sk
     assert.strictEqual(byLabel['flow: opens a page through the helpers and sees no browser errors'].status, 'pass');
     assert.strictEqual(byLabel['flow: a page with PHP errors fails openAdminPage'].status, 'fail');
     assert.match(byLabel['flow: a page with PHP errors fails openAdminPage'].detail, /PHP\/WordPress errors/);
+  } finally {
+    site.close();
+  }
+});
+
+/**
+ * Run `mmwp-e2e crawl` against a site and return its exit code and outputs.
+ *
+ * @param {string[]} args Extra arguments.
+ * @param {object}   env  Extra environment.
+ * @returns {Promise<{status: number, results: object, junit: string, stderr: string}>}
+ */
+async function runCli(args, env) {
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'mmwp-cli-'));
+  const json = path.join(work, 'out.json');
+  const junit = path.join(work, 'out.xml');
+  const child = spawn(process.execPath, [path.join(root, 'e2e', 'bin', 'cli.js'), 'crawl', `--json=${json}`, `--junit=${junit}`, ...args], {
+    cwd: root,
+    env: Object.assign({}, process.env, { MMWP_E2E_WORKERS: '2' }, env),
+  });
+  let stderr = '';
+  child.stderr.on('data', (chunk) => { stderr += chunk; });
+  const status = await new Promise((resolve) => child.on('close', resolve));
+
+  return { status, results: JSON.parse(fs.readFileSync(json, 'utf8')), junit: fs.existsSync(junit) ? fs.readFileSync(junit, 'utf8') : '', stderr };
+}
+
+test('CLI: password login is refused unless explicitly allowed', { skip: skip || false, timeout: 60000 }, async () => {
+  const site = await fake.start({ token: 'x' });
+
+  try {
+    const { status, results } = await runCli([`--url=${site.url}`, '--user=admin', '--password=secret'], { MMWP_E2E_ALLOW_PASSWORD_LOGIN: '' });
+
+    assert.strictEqual(status, 1);
+    assert.match(results.checks[0].detail, /MMWP_E2E_ALLOW_PASSWORD_LOGIN=1/);
+  } finally {
+    site.close();
+  }
+});
+
+test('CLI: crawls front page and scraped menu, fails on 5xx, page errors, writes JSON + JUnit', { skip: skip || false, timeout: 120000 }, async () => {
+  const pages = {
+    'boom.php': '<h1>Boom</h1><script>fetch("/api/boom")</script>',
+    'throws.php': '<h1>Throws</h1><script>setTimeout(() => { throw new Error("uncaught in page"); }, 0)</script>',
+  };
+  const site = await fake.start({ token: 'x', noRest: true, pages, front: '<html><body><h1>Front</h1><script>console.error("front broke")</script></body></html>' });
+
+  try {
+    const { status, results, junit } = await runCli([`--url=${site.url}`, '--user=admin', '--password=secret', '--allow-pages=^(warn|console|noisy|rest)\\.php$'], { MMWP_E2E_ALLOW_PASSWORD_LOGIN: '1' });
+    const failed = results.checks.filter((c) => c.status === 'fail' && c.label.startsWith('crawl ')).map((c) => c.label).sort();
+
+    assert.strictEqual(status, 1);
+    assert.deepStrictEqual(failed, ['crawl (front page)', 'crawl boom.php', 'crawl throws.php']);
+    assert.match(results.checks.find((c) => c.label === 'crawl boom.php').detail, /failed request: 500 .*\/api\/boom/);
+    assert.match(results.checks.find((c) => c.label === 'crawl throws.php').detail, /uncaught in page/);
+    assert.match(results.checks.find((c) => c.label === 'crawl (front page)').detail, /front broke/);
+    assert.match(junit, /<failure message=/);
+    assert.ok(!results.checks.some((c) => c.label.includes('plugins.php') || c.label.includes('example.org')));
+  } finally {
+    site.close();
+  }
+});
+
+test('CLI: --only-plugin narrows the admin pages; token login works', { skip: skip || false, timeout: 120000 }, async () => {
+  const site = await fake.start({ token: 'good-token' });
+
+  try {
+    const { status, results } = await runCli([`--url=${site.url}`, '--token=good-token', '--only-plugin=clean'], {});
+
+    assert.strictEqual(status, 0, JSON.stringify(results));
+    assert.strictEqual(results.pages, 2);
   } finally {
     site.close();
   }

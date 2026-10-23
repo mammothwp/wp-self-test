@@ -6,10 +6,11 @@
   "homepage": "https://mammothwp.com",
   "repository": {
     "type": "git",
-    "url": "git+https://gitlab.motivar.io/mammothwp/wp-self-test.git"
+    "url": "git+https://github.com/mammothwp/wp-self-test.git"
   },
   "main": "e2e/index.js",
   "bin": {
+    "mmwp-e2e": "e2e/bin/cli.js",
     "mmwp-self-test-e2e": "e2e/bin/run.js"
   },
   "files": [

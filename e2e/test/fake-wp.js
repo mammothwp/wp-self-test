@@ -26,6 +26,7 @@ function start(options) {
   const state = { logins: 0 };
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
+    const pages = Object.assign({}, PAGES, options.pages || {});
     const authed = /mmwp_session=ok/.test(req.headers.cookie || '');
     const send = (status, body, type = 'text/html', headers = {}) => {
       res.writeHead(status, Object.assign({ 'Content-Type': type }, headers));
@@ -46,6 +47,30 @@ function start(options) {
       return;
     }
 
+    if (url.pathname === '/wp-login.php') {
+      if (req.method === 'GET') {
+        return send(200, '<form></form>', 'text/html', { 'Set-Cookie': 'wordpress_test_cookie=WP%20Cookie%20check; Path=/' });
+      }
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        const form = new URLSearchParams(body);
+        if (form.get('log') === 'admin' && form.get('pwd') === 'secret') {
+          return send(302, '', 'text/html', { Location: '/wp-admin/', 'Set-Cookie': ['wordpress_logged_in_x=1; Path=/', 'mmwp_session=ok; Path=/'] });
+        }
+        return send(200, 'Error: incorrect password');
+      });
+      return;
+    }
+
+    if (url.pathname === '/') {
+      return send(200, options.front || '<html><body><h1>Front</h1></body></html>');
+    }
+
+    if (url.pathname === '/api/boom') {
+      return send(500, 'boom', 'text/plain');
+    }
+
     if (url.pathname === '/wp-json/demo/v1/missing') {
       return send(404, '{}', 'application/json');
     }
@@ -59,20 +84,25 @@ function start(options) {
     }
 
     if (url.pathname === '/wp-json/mmwp/v1/self-test/admin-menu') {
+      if (options.noRest) {
+        return send(404, '{"code":"rest_no_route"}', 'application/json');
+      }
       if (req.headers['x-wp-nonce'] !== 'nonce123') {
         return send(401, '{}', 'application/json');
       }
-      const paths = Object.keys(PAGES).concat(options.extraPages || []);
-      const pages = paths.map((path) => ({ title: path, path, url: `${server.url}/wp-admin/${path}`, parent: 'index.php' }));
-      return send(200, JSON.stringify({ admin_url: `${server.url}/wp-admin/`, pages, excluded: [], source: 'snapshot' }), 'application/json');
+      const paths = Object.keys(pages).concat(options.extraPages || []);
+      const inventory = paths.map((path) => ({ title: path, path, url: `${server.url}/wp-admin/${path}`, parent: 'index.php' }));
+      return send(200, JSON.stringify({ admin_url: `${server.url}/wp-admin/`, pages: inventory, excluded: [], source: 'snapshot' }), 'application/json');
     }
 
-    const page = PAGES[url.pathname.replace('/wp-admin/', '')];
+    const page = pages[url.pathname.replace('/wp-admin/', '')];
     if (page) {
       return send(200, `<html><body>${page}</body></html>`);
     }
     if (url.pathname === '/wp-admin/index.php') {
-      return send(200, '<html><body>Dashboard</body></html>');
+      const links = Object.keys(pages).map((path) => `<li><a href="${path}" class="menu-top"><div class="wp-menu-name">${path}</div></a></li>`).join('');
+      const extras = '<li><a href="plugins.php?action=activate&#038;_wpnonce=1">Activate</a></li><li><a href="https://example.org/docs">Docs</a></li>';
+      return send(200, `<html><body><ul id="adminmenu">${links}${extras}<li id="collapse-menu"><button>Collapse</button></li></ul></body></html>`);
     }
 
     return send(404, 'not found');

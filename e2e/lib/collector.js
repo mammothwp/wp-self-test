@@ -1,8 +1,8 @@
 'use strict';
 
 /**
- * Collects console errors, uncaught page errors and API responses of a
- * Playwright page.
+ * Collects console errors, uncaught page errors, REST/ajax responses and
+ * any >= 500 response of a Playwright page.
  *
  * @module collector
  */
@@ -38,7 +38,7 @@ function attachCollector(page) {
   page.on('pageerror', (error) => collector.pageErrors.push(String(error && error.message ? error.message : error)));
 
   page.on('response', (response) => {
-    if (isApiRequest(response.url())) {
+    if (isApiRequest(response.url()) || response.status() >= 500) {
       collector.requests.push({ url: response.url(), status: response.status() });
     }
   });

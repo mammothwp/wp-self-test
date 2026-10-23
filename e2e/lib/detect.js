@@ -61,15 +61,16 @@ function findPhpErrors(html) {
 }
 
 /**
- * Failed (>= 400) REST or ajax calls, minus the allow-list.
+ * Failed requests, minus the allow-list: any response >= 500, and REST or
+ * ajax responses >= 400.
  *
  * @param {{url: string, status: number}[]} requests Observed responses.
  * @param {string[]}                        allow    Regex sources matched against "STATUS URL".
  * @returns {string[]}
  */
-function failedApiCalls(requests, allow) {
+function failedRequests(requests, allow) {
   return requests
-    .filter((r) => r.status >= 400 && isApiRequest(r.url))
+    .filter((r) => r.status >= 500 || (r.status >= 400 && isApiRequest(r.url)))
     .map((r) => `${r.status} ${r.url}`)
     .filter((line) => !isAllowed(line, allow));
 }
@@ -109,9 +110,9 @@ function evaluatePage(page, allow) {
     .filter((message) => !isAllowed(message, rules.console) && !isAllowedResourceError(message, rules.requests))
     .forEach((message) => problems.push(`console error: ${message.slice(0, 200)}`));
 
-  failedApiCalls(page.requests || [], rules.requests).forEach((line) => problems.push(`failed request: ${line}`));
+  failedRequests(page.requests || [], rules.requests).forEach((line) => problems.push(`failed request: ${line}`));
 
   return problems;
 }
 
-module.exports = { evaluatePage, findPhpErrors, failedApiCalls, isApiRequest, isAllowed };
+module.exports = { evaluatePage, findPhpErrors, failedRequests, isApiRequest, isAllowed };

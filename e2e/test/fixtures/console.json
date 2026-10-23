@@ -4,6 +4,7 @@
     {"url": "https://demo.test/wp-json/ewp/v1/items?per_page=10", "status": 200},
     {"url": "https://demo.test/wp-json/ewp/v1/items/9", "status": 404},
     {"url": "https://demo.test/wp-admin/admin-ajax.php", "status": 500},
-    {"url": "https://demo.test/wp-content/uploads/missing.png", "status": 404}
+    {"url": "https://demo.test/wp-content/uploads/missing.png", "status": 404},
+    {"url": "https://demo.test/wp-content/plugins/demo/render.php", "status": 502}
   ]
 }

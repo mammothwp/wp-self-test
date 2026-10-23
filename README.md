@@ -177,7 +177,7 @@ It never runs on production and nothing of it loads on front-end requests.
    ```json
    {
        "devDependencies": {
-           "@mammothwp/wp-self-test-e2e": "git+https://gitlab.motivar.io/mammothwp/wp-self-test.git#<tag>",
+           "@mammothwp/wp-self-test-e2e": "git+https://github.com/mammothwp/wp-self-test.git#main",
            "@playwright/test": "^1.50.0"
        }
    }
@@ -208,7 +208,7 @@ It never runs on production and nothing of it loads on front-end requests.
 
    | Key | Meaning |
    |---|---|
-   | `crawl` | `true` opens every page of the admin menu inventory (GET only) and requires HTTP 200, no `Fatal error`/`Warning`/`Notice`/`Deprecated`/`WordPress database error`/"critical error" markup, no console errors and no `>= 400` wp-json or admin-ajax responses. |
+   | `crawl` | `true` opens the front page once and every page of the admin menu inventory (GET only) and requires HTTP 200, no `Fatal error`/`Warning`/`Notice`/`Deprecated`/`WordPress database error`/"There has been a critical error" markup, no console errors, no uncaught page errors (`pageerror`), no `>= 500` response on any request and no `>= 400` wp-json or admin-ajax response. |
    | `specs` | Playwright spec files, relative to the folder with `node_modules` (no `..`). |
    | `allow` | Per-plugin allow-lists of regular-expression sources: `console` (messages), `requests` (`"STATUS URL"`), `pages` (inventory paths to skip). |
    | `timeout` | Seconds the Node runner may take (default 300). |
@@ -243,6 +243,33 @@ It never runs on production and nothing of it loads on front-end requests.
 The runner shells out to Node only when Node and `@mammothwp/wp-self-test-e2e` are found (in DDEV, give the web container Node via `nodejs_version` and run `ddev exec npx playwright install --with-deps chromium`); otherwise the browser checks are reported as **skipped** with the reason, never as failures. `MMWP_E2E_WORKERS` (default 4) sets the parallel pages; `MMWP_E2E_STRICT_TLS=1` turns on TLS verification (off by default because DDEV's local CA is often not trusted by Chromium). Pages are crawled in parallel (4 workers by default) to keep a crawl of ~100 pages under about 2 minutes; raise `MMWP_E2E_WORKERS` if yours is slower.
 
 `bin/pre-push` runs the browser layer after the tests when `package.json` depends on the e2e package: through DDEV, or through `MMWP_SELF_TEST_BROWSER_CMD` (any command, e.g. `wp --path=/srv/site mmwp self-test run --layer=browser`). A stopped DDEV or missing Node prints a warning and skips; a failing browser check blocks the push; `MMWP_SELF_TEST_BROWSER=0` turns the step off.
+
+### Standalone CLI (CI without the PHP runner)
+
+For the shared plugin CI (`test:browser` against a throwaway WordPress with the plugin activated) the crawler runs on its own, configured by flags or environment variables:
+
+```bash
+npm install --no-save "@mammothwp/wp-self-test-e2e@git+https://github.com/mammothwp/wp-self-test.git#main" @playwright/test
+npx playwright install chromium
+
+MMWP_E2E_ALLOW_PASSWORD_LOGIN=1 \
+npx mmwp-e2e crawl --url="$WP_SITE_URL" --user=admin --password="$WP_ADMIN_PASSWORD" \
+    --only-plugin="$PLUGIN_SLUG" --json=mmwp-e2e-results.json --junit=junit-browser.xml
+```
+
+| Flag | Environment | Meaning |
+|---|---|---|
+| `--url` | `MMWP_E2E_SITE_URL` | Site URL. |
+| `--token` | `MMWP_E2E_LOGIN_TOKEN` | Single-use login token (instead of a password). |
+| `--user`, `--password` | `MMWP_E2E_USER`, `MMWP_E2E_PASSWORD` | Admin credentials through `wp-login.php`. **Refused unless `MMWP_E2E_ALLOW_PASSWORD_LOGIN=1` is set**, which only a CI job on a throwaway site should do; never use it against a real site. |
+| `--only-plugin` | `MMWP_E2E_ONLY_PLUGIN` | Crawl only admin pages whose URL or parent menu slug contains the slug (`-`/`_` alike). The front page is always crawled. |
+| `--allow-console`, `--allow-requests`, `--allow-pages` | `MMWP_E2E_ALLOW_CONSOLE`, `_REQUESTS`, `_PAGES` (comma-separated) | Allow-lists of regular-expression sources; flags are repeatable. |
+| `--spec` | | Also run a flow spec (relative to the working directory); repeatable. |
+| `--rest-url` | | Base of the `mmwp/v1/self-test/` REST routes if not under `/wp-json/`. |
+| `--json`, `--junit` | `MMWP_E2E_RESULTS`, `MMWP_E2E_JUNIT` | Results JSON (default `mmwp-e2e-results.json`) and JUnit XML (omitted when unset). |
+| `--workers` | `MMWP_E2E_WORKERS` | Parallel pages, default 4. |
+
+The exit code is 0 when every check passed and 1 when one failed or the run broke. The page list comes from `admin-menu` when the site has this package active, otherwise it is scraped from the admin menu HTML with the same exclusions. `npx mmwp-e2e --help` prints the options.
 
 ### Admin menu inventory
 
