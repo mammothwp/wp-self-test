@@ -10,7 +10,7 @@
 
 const AREAS = ['admin', 'frontend'];
 const ACTORS = ['admin', 'guest'];
-const PAGE_KEYS = ['area', 'name', 'path', 'as', 'expect', 'expect_url', 'status', 'note'];
+const PAGE_KEYS = ['area', 'name', 'path', 'as', 'expect', 'expect_url', 'expect_text', 'status', 'note'];
 const FILE_KEYS = ['version', 'pages', 'setup', 'about'];
 const VAR = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
@@ -52,8 +52,8 @@ function validatePage(raw, index) {
   if (raw.area !== undefined && !AREAS.includes(raw.area)) {
     errors.push(`${label}: "area" must be one of ${AREAS.join('|')}.`);
   }
-  if (!['name', 'expect', 'expect_url'].every(text)) {
-    errors.push(`${label}: "name", "expect" and "expect_url" must be strings.`);
+  if (!['name', 'expect', 'expect_url', 'expect_text'].every(text)) {
+    errors.push(`${label}: "name", "expect", "expect_url" and "expect_text" must be strings.`);
   }
   if (raw.status !== undefined && !(Number.isInteger(raw.status) && raw.status >= 100 && raw.status <= 599)) {
     errors.push(`${label}: "status" must be an HTTP status code.`);
@@ -64,7 +64,7 @@ function validatePage(raw, index) {
 
   const area = raw.area || (raw.path.startsWith('/wp-admin') ? 'admin' : 'frontend');
   const page = {
-    area, name: raw.name || raw.path, path: raw.path, as: raw.as, expect: raw.expect || '', expect_url: raw.expect_url || '', status: raw.status === undefined ? 200 : raw.status,
+    area, name: raw.name || raw.path, path: raw.path, as: raw.as, expect: raw.expect || '', expect_url: raw.expect_url || '', expect_text: raw.expect_text || '', status: raw.status === undefined ? 200 : raw.status,
   };
 
   return { page, errors, warnings: unknownKeys(raw, PAGE_KEYS, label) };
@@ -132,7 +132,7 @@ function substitute(value, vars) {
 }
 
 /**
- * Resolve the variables in path, expect and expect_url of a page.
+ * Resolve the variables in path, expect, expect_url and expect_text of a page.
  *
  * @param {object} page Validated page.
  * @param {Object<string, *>} vars Resolved variables.
@@ -142,7 +142,7 @@ function resolvePage(page, vars) {
   const resolved = { ...page };
   const missing = [];
 
-  ['path', 'expect', 'expect_url'].forEach((key) => {
+  ['path', 'expect', 'expect_url', 'expect_text'].forEach((key) => {
     const result = substitute(page[key], vars);
     resolved[key] = result.value;
     missing.push(...result.missing);

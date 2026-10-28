@@ -303,7 +303,8 @@ npx mmwp-e2e pages --url="$WP_SITE_URL" --file=browser-pages.json --vars=vars.js
 | `name` | Label in the report (default: the path). |
 | `expect` | CSS selector that must exist on the page. |
 | `expect_url` | Substring the final URL (after redirects) must contain. |
-| `status` | Expected HTTP status of the final response, default 200. |
+| `expect_text` | Plain substring (after `${VAR}` substitution) that must appear in the page's visible text (`document.body.innerText`); the failure message shows the expected text. |
+| `status` | Expected HTTP status of the final document, default 200. A page with e.g. `"status": 410` passes when the document returns 410; that response is not also reported as a failed request, while PHP errors, console errors and other responses >= 500 still fail the page. |
 | `note`, `setup`, `about` | Ignored by the crawler (`setup` is run by ci-templates). |
 
 Unknown keys print a warning; a missing/invalid `path` or `as` aborts before any browser starts (exit 1). Each page gets the same checks as `crawl` (HTTP status, PHP Fatal/Parse/Warning/Notice/Deprecated markup, critical-error and database-error pages, console and page errors, responses >= 500, REST/admin-ajax >= 400, honouring `--allow-console`) plus `expect` / `expect_url`. Flags: `--url`, `--file`, `--vars` (JSON object file), `--user`, `--password`, `--workers` (default 4), `--timeout-ms` (default 30000), `--allow-console` (repeatable), `--json`, `--junit`. The JSON has `checks` (one per page, `<area>/<as>: <name>`) and `rows` (name, area, as, path, final URL, `duration_ms`, result, problems). Exit code 1 when any page fails.

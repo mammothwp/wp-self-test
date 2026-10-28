@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-10-28
+
+### Added
+- `mmwp-e2e pages`: optional page key `expect_text`, a plain substring (after `${VAR}` substitution) that must appear in `document.body.innerText`.
+
+### Fixed
+- A page with an expected error `status` (e.g. 410, 500) no longer also fails the generic failed-request check for its own document; other responses, PHP errors and console errors still fail it.
+
 ## [2.2.0] - 2026-10-28
 
 Originating request: plugins need to test an explicit list of admin and frontend pages instead of the whole admin menu (Nikos), so failures are about the plugin and not about WooCommerce's heavy screens.

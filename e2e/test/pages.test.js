@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { parsePagesFile, parseVars, resolvePage, substitute } = require('../lib/pages');
 const { parsePagesArgs, loadInputs } = require('../lib/pages_command');
-const { rowsToChecks } = require('../lib/pages_runner');
+const { rowsToChecks, pageProblems } = require('../lib/pages_runner');
 
 const fixture = path.join(__dirname, 'fixtures', 'browser-pages.json');
 const entry = (extra) => JSON.stringify({ version: 1, pages: [Object.assign({ path: '/', as: 'guest' }, extra)] });
@@ -95,4 +95,36 @@ test('rowsToChecks labels rows and joins problems', () => {
   const [check] = rowsToChecks([{ area: 'admin', as: 'admin', name: 'Dash', result: 'fail', problems: ['a', 'b'] }]);
 
   assert.deepStrictEqual(check, { label: 'admin/admin: Dash', status: 'fail', detail: 'a\nb' });
+});
+
+test('expect_text is parsed, substituted and must be a string', () => {
+  assert.strictEqual(parsePagesFile(entry({ expect_text: 'Link expired' })).pages[0].expect_text, 'Link expired');
+  assert.match(parsePagesFile(entry({ expect_text: 5 })).errors[0], /expect_text/);
+  assert.strictEqual(resolvePage({ path: '/', expect: '', expect_url: '', expect_text: 'Order #${ID}' }, { ID: 7 }).page.expect_text, 'Order #7');
+});
+
+test('expect_text fails with the expected text when missing', () => {
+  const seen = { observed: 200, documentUrl: 'http://x/', html: '', text: 'Hello world', console: [], pageErrors: [], requests: [] };
+
+  assert.deepStrictEqual(pageProblems(seen, { status: 200, expect_text: 'world' }, {}), []);
+  assert.deepStrictEqual(pageProblems(seen, { status: 200, expect_text: 'Thank you' }, {}), ['expected text not found: "Thank you"']);
+});
+
+test('a page expecting 410 passes when the document returns 410', () => {
+  const seen = { observed: 410, documentUrl: 'http://x/gone', html: '<p>Gone</p>', text: 'Gone', console: [], pageErrors: [], requests: [{ url: 'http://x/gone', status: 410 }] };
+
+  assert.deepStrictEqual(pageProblems(seen, { status: 410, expect_text: '' }, {}), []);
+  assert.deepStrictEqual(pageProblems({ ...seen, observed: 200, requests: [] }, { status: 410, expect_text: '' }, {}), ['expected HTTP 410']);
+});
+
+test('an expected error status does not hide other failing responses or PHP errors', () => {
+  const seen = {
+    observed: 500, documentUrl: 'http://x/e', html: '<b>Warning</b>: Undefined in /a.php on line 3', text: '', console: [], pageErrors: [],
+    requests: [{ url: 'http://x/e', status: 500 }, { url: 'http://x/other.js', status: 503 }],
+  };
+  const problems = pageProblems(seen, { status: 500, expect_text: '' }, {});
+
+  assert.strictEqual(problems.length, 2);
+  assert.ok(problems.some((p) => p.startsWith('PHP/WordPress error')));
+  assert.ok(problems.includes('failed request: 503 http://x/other.js'));
 });
