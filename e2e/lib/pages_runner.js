@@ -25,6 +25,39 @@ function urlFor(site, path) {
 }
 
 /**
+ * Problems of one observed page against its expectations. Pure: no browser.
+ * The main document's own response is judged only by the page's `status`, so
+ * an expected 4xx/5xx does not also fail the generic failed-request check;
+ * every other response is still checked.
+ *
+ * @param {{observed: number, documentUrl: string, html: string, text: string, console: string[], pageErrors: string[], requests: {url: string, status: number}[]}} seen Observations.
+ * @param {{status: number, expect_text: string}} page Resolved page.
+ * @param {object} allow Allow-lists.
+ * @returns {string[]}
+ */
+function pageProblems(seen, page, allow) {
+  const matches = seen.observed === page.status;
+  const requests = (seen.requests || []).filter((r) => !(matches && r.url === seen.documentUrl && r.status === page.status));
+  // The expected status is the page's "200"; evaluatePage flags anything else.
+  const problems = evaluatePage({
+    status: matches ? 200 : seen.observed,
+    html: seen.html,
+    console: seen.console,
+    pageErrors: seen.pageErrors,
+    requests,
+  }, allow);
+
+  if (!matches && page.status !== 200) {
+    problems.push(`expected HTTP ${page.status}`);
+  }
+  if (page.expect_text && !String(seen.text || '').includes(page.expect_text)) {
+    problems.push(`expected text not found: "${page.expect_text}"`);
+  }
+
+  return problems;
+}
+
+/**
  * Open one page and collect its problems.
  *
  * @param {import('@playwright/test').Browser} browser Browser.
@@ -46,18 +79,16 @@ async function openPage(browser, page, settings) {
     await tab.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
 
     const observed = response ? response.status() : 0;
-    // The expected status is the page's "200"; evaluatePage flags anything else.
-    const problems = evaluatePage({
-      status: observed === page.status ? 200 : observed,
+    const problems = pageProblems({
+      observed,
+      documentUrl: response ? response.url() : '',
       html: await tab.content(),
+      text: await tab.evaluate(() => document.body.innerText).catch(() => ''),
       console: collector.console,
       pageErrors: collector.pageErrors,
       requests: collector.requests,
-    }, settings.allow);
+    }, page, settings.allow);
 
-    if (observed !== page.status && page.status !== 200) {
-      problems.push(`expected HTTP ${page.status}`);
-    }
     if (page.expect && (await tab.locator(page.expect).count()) === 0) {
       problems.push(`expected selector not found: ${page.expect}`);
     }
@@ -143,4 +174,4 @@ function rowsToChecks(rows) {
   }));
 }
 
-module.exports = { runPages, runPage, rowsToChecks, urlFor };
+module.exports = { pageProblems, runPages, runPage, rowsToChecks, urlFor };
