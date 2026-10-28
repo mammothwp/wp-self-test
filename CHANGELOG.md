@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-10-28
+
+Originating request: plugins need to test an explicit list of admin and frontend pages instead of the whole admin menu (Nikos), so failures are about the plugin and not about WooCommerce's heavy screens.
+
+### Added
+- `mmwp-e2e pages --url --file --vars --user --password [--workers --timeout-ms --allow-console --json --junit]`: opens the pages of a `browser-pages.json` (version 1) in a fresh browser context each (`as: admin` reuses the login, `guest` has no cookies), applies the crawler's failure checks plus `expect`, `expect_url` and `status`, substitutes `${VAR}` from `--vars`, and reports name, area, as, final URL, duration and result as JSON and JUnit. `crawl` is unchanged.
+- File validation: unknown keys warn, a missing `path` or `as` fails before the browser starts.
+- Tests for parsing, substitution, validation and argument handling, plus a fixture `e2e/test/fixtures/browser-pages.json`; README section "Listed pages mode".
+
+### Deployment note
+- The ci-templates browser image packs this package from `main`; `image-browser` in `mammothwp/ci-templates` must be re-run after merge.
+
 ## [2.1.1] - 2026-10-23
 
 Originating request: `mmwp-e2e crawl` aborted in 2 s on the plugin CI runner (admin-terms-acceptance, job 453998) with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`: the site used plain permalinks (`/wp-json/` is not routed) and the plugin's built zip does not contain wp-self-test, so the `mmwp/v1/self-test/*` routes did not exist.

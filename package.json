@@ -1,6 +1,6 @@
 {
   "name": "@mammothwp/wp-self-test-e2e",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Playwright runner and helpers for the browser layer of mammothwp/wp-self-test: admin crawl and plugin flow tests.",
   "license": "GPL-2.0-or-later",
   "homepage": "https://mammothwp.com",

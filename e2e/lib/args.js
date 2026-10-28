@@ -32,6 +32,8 @@ Output:
   --workers=<n>           Parallel pages (default 4; MMWP_E2E_WORKERS)
 
 Exit code: 0 all checks passed, 1 a check failed or the run broke.
+
+See also: mmwp-e2e pages --help (explicit list of admin and frontend pages).
 `;
 
 const LISTS = ['allow-console', 'allow-requests', 'allow-pages', 'spec'];
