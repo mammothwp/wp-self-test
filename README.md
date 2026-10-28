@@ -271,6 +271,43 @@ npx mmwp-e2e crawl --url="$WP_SITE_URL" --user=admin --password="$WP_ADMIN_PASSW
 
 The exit code is 0 when every check passed and 1 when one failed or the run broke. The page list comes from `admin-menu` when the site has this package active, otherwise it is scraped from the admin menu HTML with the same exclusions. `npx mmwp-e2e --help` prints the options.
 
+### Listed pages mode (`mmwp-e2e pages`)
+
+`crawl` opens every admin menu page. When a plugin wants an explicit list of admin **and** frontend pages instead (so failures are about the plugin, not about WooCommerce's heavy screens), describe them in `browser-pages.json` and run:
+
+```bash
+MMWP_E2E_ALLOW_PASSWORD_LOGIN=1 \
+npx mmwp-e2e pages --url="$WP_SITE_URL" --file=browser-pages.json --vars=vars.json \
+    --user=admin --password="$WP_ADMIN_PASSWORD" --json=mmwp-e2e-results.json --junit=junit-browser.xml
+```
+
+```json
+{
+  "version": 1,
+  "pages": [
+    { "area": "admin", "name": "Settings", "path": "/wp-admin/admin.php?page=my-plugin", "as": "admin", "expect": "#my-plugin-form" },
+    { "area": "admin", "name": "Product", "path": "/wp-admin/post.php?post=${PRODUCT_ID}&action=edit", "as": "admin", "expect_url": "action=edit" },
+    { "area": "frontend", "name": "Shop", "path": "/shop/", "as": "guest", "expect": ".products" },
+    { "area": "frontend", "name": "Old URL", "path": "/old/", "as": "guest", "status": 200, "expect_url": "/new/" }
+  ],
+  "setup": [],
+  "about": "ignored by the crawler"
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `path` (required) | Starts with `/`. `${VAR}` is replaced from `--vars`; an unknown variable fails that page with a clear message. |
+| `as` (required) | `admin` reuses the logged-in session, `guest` has no cookies. Every page gets a fresh browser context, so carts and sessions never leak between pages. |
+| `area` | `admin` or `frontend` (default: `admin` for paths under `/wp-admin`). Reporting only. |
+| `name` | Label in the report (default: the path). |
+| `expect` | CSS selector that must exist on the page. |
+| `expect_url` | Substring the final URL (after redirects) must contain. |
+| `status` | Expected HTTP status of the final response, default 200. |
+| `note`, `setup`, `about` | Ignored by the crawler (`setup` is run by ci-templates). |
+
+Unknown keys print a warning; a missing/invalid `path` or `as` aborts before any browser starts (exit 1). Each page gets the same checks as `crawl` (HTTP status, PHP Fatal/Parse/Warning/Notice/Deprecated markup, critical-error and database-error pages, console and page errors, responses >= 500, REST/admin-ajax >= 400, honouring `--allow-console`) plus `expect` / `expect_url`. Flags: `--url`, `--file`, `--vars` (JSON object file), `--user`, `--password`, `--workers` (default 4), `--timeout-ms` (default 30000), `--allow-console` (repeatable), `--json`, `--junit`. The JSON has `checks` (one per page, `<area>/<as>: <name>`) and `rows` (name, area, as, path, final URL, `duration_ms`, result, problems). Exit code 1 when any page fails.
+
 ### Admin menu inventory
 
 `GET mmwp/v1/self-test/admin-menu` (cookie + `X-WP-Nonce`, same capability and `mmwp_self_test_ui_enabled` gate as the dashboard routes) returns `{admin_url, pages: [{title, url, path, parent}], excluded, source}` for the current user. Many plugins register their pages only when `is_admin()` is true, so the menu is snapshotted on `admin_menu` in real admin requests (`source: snapshot`) and the crawler loads one admin page first; without a snapshot the route falls back to the live globals. URLs containing `action=`, `nonce`, `customize.php`, `update.php`, `update-core.php`, `plugin-install.php`, `theme-install.php`, `post-new.php` (it creates an auto-draft) or `logout` are excluded; change the list with the `mmwp_self_test_admin_menu_exclusions` filter.

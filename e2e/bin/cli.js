@@ -2,7 +2,7 @@
 'use strict';
 
 /**
- * `mmwp-e2e crawl`: run the admin crawler without the PHP runner, e.g. from
+ * `mmwp-e2e crawl` / `mmwp-e2e pages`: run the admin crawler or an explicit page list without the PHP runner, e.g. from
  * a CI job against a throwaway WordPress. See lib/args.js for the options.
  */
 
@@ -11,6 +11,7 @@ const os = require('os');
 const path = require('path');
 const { parseArgs, USAGE } = require('../lib/args');
 const { orchestrate } = require('../lib/orchestrate');
+const { pagesCommand, PAGES_USAGE } = require('../lib/pages_command');
 
 /**
  * Entry point.
@@ -19,6 +20,15 @@ const { orchestrate } = require('../lib/orchestrate');
  */
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
+
+  if (command === 'pages') {
+    if (rest.includes('--help')) {
+      process.stdout.write(PAGES_USAGE);
+      return 0;
+    }
+
+    return pagesCommand(rest);
+  }
 
   if (command !== 'crawl' || rest.includes('--help')) {
     process.stdout.write(USAGE);
