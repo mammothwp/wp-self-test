@@ -24,6 +24,7 @@ Opens an explicit list of admin and frontend pages (GET only), each in a fresh b
   --vars=<path>           JSON object with the values of \${VAR} placeholders
   --user, --password      Admin login (refused unless MMWP_E2E_ALLOW_PASSWORD_LOGIN=1)
   --allow-console=<re>    Ignore console errors matching the regex (repeatable)
+  --allow-requests=<re>   Ignore failed "STATUS URL" requests matching the regex (repeatable), as in crawl
   --workers=<n>           Parallel pages (default 4)
   --timeout-ms=<n>        Per-page navigation timeout (default 30000)
   --json=<file>           Results JSON (default mmwp-e2e-results.json)
@@ -31,6 +32,12 @@ Opens an explicit list of admin and frontend pages (GET only), each in a fresh b
 
 Exit code: 0 all pages passed, 1 a page failed or the run broke.
 `;
+
+/** Options that may be repeated; collected into arrays. */
+const LIST_OPTIONS = ['allow-console', 'allow-requests'];
+
+/** Every option `pages` accepts. */
+const VALID_OPTIONS = ['url', 'file', 'vars', 'user', 'password', 'workers', 'timeout-ms', 'json', 'junit', 'help'].concat(LIST_OPTIONS);
 
 /**
  * Parse the arguments of `mmwp-e2e pages`.
@@ -47,29 +54,29 @@ function parsePagesArgs(argv, env = process.env) {
     const match = /^--([a-z-]+)(?:=(.*))?$/.exec(arg);
     if (!match) {
       errors.push(`Unexpected argument "${arg}".`);
-    } else if (match[1] === 'allow-console') {
+    } else if (LIST_OPTIONS.includes(match[1])) {
       (flags[match[1]] = flags[match[1]] || []).push(match[2] || '');
     } else {
       flags[match[1]] = match[2] === undefined ? '1' : match[2];
     }
   });
 
-  const consoleAllow = flags['allow-console'] || (env.MMWP_E2E_ALLOW_CONSOLE ? env.MMWP_E2E_ALLOW_CONSOLE.split(',').filter(Boolean) : []);
+  const list = (name, envName) => flags[name] || (env[envName] ? env[envName].split(',').filter(Boolean) : []);
   const options = {
     url: flags.url || env.MMWP_E2E_SITE_URL || '',
     file: flags.file || '',
     vars: flags.vars || '',
     user: flags.user || env.MMWP_E2E_USER || '',
     password: flags.password || env.MMWP_E2E_PASSWORD || '',
-    allow: { console: consoleAllow, requests: [], pages: [] },
+    allow: { console: list('allow-console', 'MMWP_E2E_ALLOW_CONSOLE'), requests: list('allow-requests', 'MMWP_E2E_ALLOW_REQUESTS'), pages: [] },
     workers: Number(flags.workers || env.MMWP_E2E_WORKERS || 4),
     timeoutMs: Number(flags['timeout-ms'] || 30000),
     json: flags.json || env.MMWP_E2E_RESULTS || 'mmwp-e2e-results.json',
     junit: flags.junit || env.MMWP_E2E_JUNIT || '',
   };
 
-  Object.keys(flags).filter((k) => !['url', 'file', 'vars', 'user', 'password', 'allow-console', 'workers', 'timeout-ms', 'json', 'junit', 'help'].includes(k))
-    .forEach((k) => errors.push(`Unknown option --${k}.`));
+  Object.keys(flags).filter((k) => !VALID_OPTIONS.includes(k))
+    .forEach((k) => errors.push(`Unknown option --${k}. Valid options: ${VALID_OPTIONS.map((o) => `--${o}`).join(', ')}.`));
   if (!/^https?:\/\//.test(options.url)) {
     errors.push('--url (or MMWP_E2E_SITE_URL) must be an http(s) URL.');
   }

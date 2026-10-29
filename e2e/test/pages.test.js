@@ -128,3 +128,36 @@ test('an expected error status does not hide other failing responses or PHP erro
   assert.ok(problems.some((p) => p.startsWith('PHP/WordPress error')));
   assert.ok(problems.includes('failed request: 503 http://x/other.js'));
 });
+
+test('--allow-requests is repeatable and rejects unknown options with the valid list', () => {
+  const base = ['--url=http://x', '--file=f.json', '--user=u', '--password=p'];
+  const ok = parsePagesArgs(base.concat(['--allow-requests=^a', '--allow-requests=^b']), {});
+  const bad = parsePagesArgs(base.concat(['--bogus=1']), {});
+
+  assert.deepStrictEqual(ok.errors, []);
+  assert.deepStrictEqual(ok.options.allow.requests, ['^a', '^b']);
+  assert.strictEqual(bad.errors.length, 1);
+  assert.ok(bad.errors[0].startsWith('Unknown option --bogus. Valid options: --url'));
+  assert.ok(bad.errors[0].includes('--allow-requests'));
+});
+
+const external = { observed: 200, documentUrl: 'http://x/', html: '', text: '', console: [], pageErrors: [], requests: [{ url: 'https://ext.example/a.js', status: 503 }] };
+const externalAllow = { requests: ['^([0-9]+ )?https?://(?!localhost[:/])'] };
+
+test('a failed external request matching --allow-requests passes', () => {
+  assert.deepStrictEqual(pageProblems(external, { status: 200, expect_text: '' }, externalAllow), []);
+});
+
+test('a failed request not matching --allow-requests still fails', () => {
+  const seen = { ...external, requests: [{ url: 'http://localhost:8080/x.js', status: 503 }] };
+
+  assert.deepStrictEqual(pageProblems(seen, { status: 200, expect_text: '' }, externalAllow), ['failed request: 503 http://localhost:8080/x.js']);
+});
+
+test('a matching request does not hide a PHP error', () => {
+  const seen = { ...external, html: '<b>Warning</b>: Undefined in /a.php on line 3' };
+  const problems = pageProblems(seen, { status: 200, expect_text: '' }, externalAllow);
+
+  assert.strictEqual(problems.length, 1);
+  assert.ok(problems[0].startsWith('PHP/WordPress error'));
+});

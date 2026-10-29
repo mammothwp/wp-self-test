@@ -10,4 +10,4 @@ if (!defined('ABSPATH')) {
     return '0.0.0';
 }
 
-return '2.2.1';
+return '2.2.2';

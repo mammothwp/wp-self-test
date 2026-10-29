@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-10-29
+
+### Added
+- `mmwp-e2e pages --allow-requests=<re>` (repeatable, also `MMWP_E2E_ALLOW_REQUESTS`): ignores failed requests whose "STATUS URL" matches, exactly as in `crawl` (the offline CI site's blocked external hosts). The document's status, PHP errors and console errors are unaffected.
+
+### Changed
+- `mmwp-e2e pages` still exits 1 on an unknown option, but the message now names it and lists the valid options.
+
 ## [2.2.1] - 2026-10-28
 
 ### Added
