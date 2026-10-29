@@ -117,6 +117,18 @@ test('a page expecting 410 passes when the document returns 410', () => {
   assert.deepStrictEqual(pageProblems({ ...seen, observed: 200, requests: [] }, { status: 410, expect_text: '' }, {}), ['expected HTTP 410']);
 });
 
+test('Chrome\'s console message for the expected-status document is ignored, nothing else', () => {
+  const doc = 'http://x/gone?t=1';
+  const base = { observed: 410, documentUrl: doc, html: '', text: '', pageErrors: [], requests: [{ url: doc, status: 410 }] };
+  const msg = (status, name, url) => `Failed to load resource: the server responded with a status of ${status} (${name}) @ ${url}`;
+
+  assert.deepStrictEqual(pageProblems({ ...base, console: [msg(410, 'Gone', doc)] }, { status: 410, expect_text: '' }, {}), []);
+  assert.strictEqual(pageProblems({ ...base, console: [msg(410, 'Gone', 'http://x/other.js')] }, { status: 410, expect_text: '' }, {}).length, 1);
+
+  const err = { ...base, observed: 404, requests: [{ url: doc, status: 404 }], console: [msg(500, 'Internal Server Error', doc)] };
+  assert.strictEqual(pageProblems(err, { status: 404, expect_text: '' }, {}).length, 1);
+});
+
 test('an expected error status does not hide other failing responses or PHP errors', () => {
   const seen = {
     observed: 500, documentUrl: 'http://x/e', html: '<b>Warning</b>: Undefined in /a.php on line 3', text: '', console: [], pageErrors: [],
