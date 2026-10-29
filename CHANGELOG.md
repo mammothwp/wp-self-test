@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2026-10-29
+
+### Fixed
+- `mmwp-e2e pages`: a page whose document returns its expected `status` (e.g. 410, 404) no longer fails on Chrome's own "Failed to load resource: ... status of <status>" console message for that same document URL (final URL after redirects). Console errors for other URLs, or with a different status, still fail the page.
+
 ## [2.2.3] - 2026-10-29
 
 ### Changed

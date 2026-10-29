@@ -25,10 +25,31 @@ function urlFor(site, path) {
 }
 
 /**
+ * Whether a console entry is Chrome's "Failed to load resource" message for
+ * the main document itself with the page's expected status.
+ *
+ * @param {string} entry Console entry (`<message> @ <url>`).
+ * @param {string} documentUrl Final document URL.
+ * @param {number} status Expected status.
+ * @returns {boolean}
+ */
+function isExpectedDocumentMessage(entry, documentUrl, status) {
+  const at = entry.lastIndexOf(' @ ');
+  if (at < 0 || !documentUrl || entry.slice(at + 3) !== documentUrl) {
+    return false;
+  }
+  const message = entry.slice(0, at);
+
+  return new RegExp(`^Failed to load resource: .*status of ${status}\\b`).test(message);
+}
+
+/**
  * Problems of one observed page against its expectations. Pure: no browser.
  * The main document's own response is judged only by the page's `status`, so
  * an expected 4xx/5xx does not also fail the generic failed-request check;
- * every other response is still checked.
+ * every other response is still checked. Chrome's own "Failed to load
+ * resource ... status of <status>" console message for that same document URL
+ * is ignored too; other URLs or statuses still fail.
  *
  * @param {{observed: number, documentUrl: string, html: string, text: string, console: string[], pageErrors: string[], requests: {url: string, status: number}[]}} seen Observations.
  * @param {{status: number, expect_text: string}} page Resolved page.
@@ -42,7 +63,7 @@ function pageProblems(seen, page, allow) {
   const problems = evaluatePage({
     status: matches ? 200 : seen.observed,
     html: seen.html,
-    console: seen.console,
+    console: matches ? (seen.console || []).filter((c) => !isExpectedDocumentMessage(c, seen.documentUrl, page.status)) : seen.console,
     pageErrors: seen.pageErrors,
     requests,
   }, allow);
