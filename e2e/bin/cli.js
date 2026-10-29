@@ -58,6 +58,7 @@ async function main() {
   fs.writeFileSync(configFile, JSON.stringify(config));
   process.env.MMWP_E2E_CONFIG = configFile;
   process.env.MMWP_E2E_WORKERS = String(options.workers);
+  process.env.MMWP_E2E_USER_AGENT = options.userAgent;
 
   try {
     return await orchestrate(

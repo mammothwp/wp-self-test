@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-10-29
+
+### Changed
+- `mmwp-e2e pages` and `crawl` use a desktop Chrome user agent derived from the bundled Chromium version (`Mozilla/5.0 (X11; Linux x86_64) ... Chrome/<version> Safari/537.36`) instead of Playwright's "HeadlessChrome" one, which bot and prefetch guards ignore. No `Sec-Purpose` or other header is added. The UA is printed in the run header.
+- `--allow-console` regexes are matched against the full reported string (`<message> @ <url>`) as well as the message alone, with the same code in `crawl` and `pages`.
+- A 4xx/5xx response for a non-document resource whose URL matches an `--allow-console` pattern no longer fails the page.
+
+### Added
+- `--user-agent=<ua>` (env `MMWP_E2E_USER_AGENT`) on `pages` and `crawl` overrides the user agent.
+
 ## [2.2.2] - 2026-10-29
 
 ### Added

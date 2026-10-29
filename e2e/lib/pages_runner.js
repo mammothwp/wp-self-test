@@ -62,12 +62,13 @@ function pageProblems(seen, page, allow) {
  *
  * @param {import('@playwright/test').Browser} browser Browser.
  * @param {object} page Resolved page.
- * @param {{site: string, storageState: string, allow: object, timeoutMs: number, ignoreTls: boolean}} settings Settings.
+ * @param {{site: string, storageState: string, allow: object, timeoutMs: number, ignoreTls: boolean, userAgent: string}} settings Settings.
  * @returns {Promise<{url: string, problems: string[]}>}
  */
 async function openPage(browser, page, settings) {
   const context = await browser.newContext({
     ignoreHTTPSErrors: settings.ignoreTls,
+    userAgent: settings.userAgent,
     storageState: page.as === 'admin' ? settings.storageState : undefined,
   });
 

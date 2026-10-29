@@ -61,16 +61,35 @@ function findPhpErrors(html) {
 }
 
 /**
- * Failed requests, minus the allow-list: any response >= 500, and REST or
- * ajax responses >= 400.
+ * Whether a reported console error is allow-listed. Shared by `crawl` and
+ * `pages`. A pattern may match the full reported string ("<message> @ <url>",
+ * the URL part exists for resource-load failures) or just the message text,
+ * so patterns anchored to the message keep working.
  *
- * @param {{url: string, status: number}[]} requests Observed responses.
- * @param {string[]}                        allow    Regex sources matched against "STATUS URL".
+ * @param {string}   reported Console or page error as reported.
+ * @param {string[]} patterns `--allow-console` regex sources.
+ * @returns {boolean}
+ */
+function isAllowedConsole(reported, patterns) {
+  const message = reported.replace(/ @ \S+$/, '');
+
+  return isAllowed(reported, patterns) || isAllowed(message, patterns);
+}
+
+/**
+ * Failed requests, minus the allow-lists: any response >= 500, and REST or
+ * ajax responses >= 400. A non-document response is also ignored when its
+ * URL (or "STATUS URL") matches an `--allow-console` pattern.
+ *
+ * @param {{url: string, status: number, resourceType?: string}[]} requests Observed responses.
+ * @param {string[]}                                                allow    Regex sources matched against "STATUS URL".
+ * @param {string[]}                                                [allowConsole] `--allow-console` regex sources.
  * @returns {string[]}
  */
-function failedRequests(requests, allow) {
+function failedRequests(requests, allow, allowConsole) {
   return requests
     .filter((r) => r.status >= 500 || (r.status >= 400 && isApiRequest(r.url)))
+    .filter((r) => r.resourceType === 'document' || !isAllowedConsole(r.url, allowConsole))
     .map((r) => `${r.status} ${r.url}`)
     .filter((line) => !isAllowed(line, allow));
 }
@@ -107,12 +126,12 @@ function evaluatePage(page, allow) {
   findPhpErrors(page.html || '').forEach((p) => problems.push(`PHP/WordPress error: ${p}`));
 
   [...(page.console || []), ...(page.pageErrors || [])]
-    .filter((message) => !isAllowed(message, rules.console) && !isAllowedResourceError(message, rules.requests))
+    .filter((message) => !isAllowedConsole(message, rules.console) && !isAllowedResourceError(message, rules.requests))
     .forEach((message) => problems.push(`console error: ${message.slice(0, 200)}`));
 
-  failedRequests(page.requests || [], rules.requests).forEach((line) => problems.push(`failed request: ${line}`));
+  failedRequests(page.requests || [], rules.requests, rules.console).forEach((line) => problems.push(`failed request: ${line}`));
 
   return problems;
 }
 
-module.exports = { evaluatePage, findPhpErrors, failedRequests, isApiRequest, isAllowed };
+module.exports = { evaluatePage, findPhpErrors, failedRequests, isApiRequest, isAllowed, isAllowedConsole };
