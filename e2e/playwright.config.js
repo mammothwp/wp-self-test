@@ -41,6 +41,7 @@ module.exports = defineConfig({
     baseURL: config.site_url,
     storageState: process.env.MMWP_E2E_STORAGE_STATE,
     ignoreHTTPSErrors: ignoreTls(),
+    userAgent: process.env.MMWP_E2E_USER_AGENT || undefined,
     trace: 'off',
   },
 });

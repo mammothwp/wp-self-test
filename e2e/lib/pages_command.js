@@ -14,6 +14,7 @@ const { parsePagesFile, parseVars } = require('./pages');
 const { runPages, rowsToChecks } = require('./pages_runner');
 const { loginWithPassword, ignoreTls } = require('./session');
 const { toJunit } = require('./junit');
+const { resolveUserAgent } = require('./user_agent');
 
 const PAGES_USAGE = `Usage: mmwp-e2e pages --url=<site> --file=<browser-pages.json> --user=<user> --password=<password> [options]
 
@@ -25,6 +26,7 @@ Opens an explicit list of admin and frontend pages (GET only), each in a fresh b
   --user, --password      Admin login (refused unless MMWP_E2E_ALLOW_PASSWORD_LOGIN=1)
   --allow-console=<re>    Ignore console errors matching the regex (repeatable)
   --allow-requests=<re>   Ignore failed "STATUS URL" requests matching the regex (repeatable), as in crawl
+  --user-agent=<ua>       Browser user agent (MMWP_E2E_USER_AGENT; default: desktop Chrome UA of the bundled Chromium)
   --workers=<n>           Parallel pages (default 4)
   --timeout-ms=<n>        Per-page navigation timeout (default 30000)
   --json=<file>           Results JSON (default mmwp-e2e-results.json)
@@ -37,7 +39,7 @@ Exit code: 0 all pages passed, 1 a page failed or the run broke.
 const LIST_OPTIONS = ['allow-console', 'allow-requests'];
 
 /** Every option `pages` accepts. */
-const VALID_OPTIONS = ['url', 'file', 'vars', 'user', 'password', 'workers', 'timeout-ms', 'json', 'junit', 'help'].concat(LIST_OPTIONS);
+const VALID_OPTIONS = ['url', 'file', 'vars', 'user', 'password', 'workers', 'timeout-ms', 'json', 'junit', 'user-agent', 'help'].concat(LIST_OPTIONS);
 
 /**
  * Parse the arguments of `mmwp-e2e pages`.
@@ -69,6 +71,7 @@ function parsePagesArgs(argv, env = process.env) {
     user: flags.user || env.MMWP_E2E_USER || '',
     password: flags.password || env.MMWP_E2E_PASSWORD || '',
     allow: { console: list('allow-console', 'MMWP_E2E_ALLOW_CONSOLE'), requests: list('allow-requests', 'MMWP_E2E_ALLOW_REQUESTS'), pages: [] },
+    userAgent: flags['user-agent'] || env.MMWP_E2E_USER_AGENT || '',
     workers: Number(flags.workers || env.MMWP_E2E_WORKERS || 4),
     timeoutMs: Number(flags['timeout-ms'] || 30000),
     json: flags.json || env.MMWP_E2E_RESULTS || 'mmwp-e2e-results.json',
@@ -184,7 +187,9 @@ async function pagesCommand(argv) {
     const playwright = require(require.resolve('@playwright/test', { paths: [process.cwd()] }));
     await saveLogin(playwright, options, storageState);
     browser = await playwright.chromium.launch();
-    const settings = { site: options.url, storageState, allow: options.allow, timeoutMs: options.timeoutMs, ignoreTls: ignoreTls() };
+    const userAgent = resolveUserAgent(options.userAgent, browser.version());
+    process.stderr.write(`User agent: ${userAgent}\n`);
+    const settings = { site: options.url, storageState, allow: options.allow, timeoutMs: options.timeoutMs, ignoreTls: ignoreTls(), userAgent };
     const rows = await runPages(browser, inputs.pages, inputs.vars, settings, options.workers);
     rows.forEach((r) => process.stderr.write(`${r.result.toUpperCase()} ${r.area}/${r.as} ${r.name} ${r.url} ${r.duration_ms}ms${r.problems.length ? `\n  ${r.problems.join('\n  ')}` : ''}\n`));
     writeOutputs(options, rows, { duration: Date.now() - started });

@@ -13,7 +13,7 @@ const { isApiRequest } = require('./detect');
  * Attach listeners to a page.
  *
  * @param {import('@playwright/test').Page} page Page to observe.
- * @returns {{console: string[], pageErrors: string[], requests: {url: string, status: number}[], reset: Function}}
+ * @returns {{console: string[], pageErrors: string[], requests: {url: string, status: number, resourceType?: string}[], reset: Function}}
  */
 function attachCollector(page) {
   const collector = {
@@ -39,7 +39,7 @@ function attachCollector(page) {
 
   page.on('response', (response) => {
     if (isApiRequest(response.url()) || response.status() >= 500) {
-      collector.requests.push({ url: response.url(), status: response.status() });
+      collector.requests.push({ url: response.url(), status: response.status(), resourceType: response.request().resourceType() });
     }
   });
 

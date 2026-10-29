@@ -17,6 +17,7 @@ const { readConfig } = require('./env');
 const { establishSession } = require('./session');
 const { buildResults } = require('./results');
 const { toJunit } = require('./junit');
+const { detectUserAgent } = require('./user_agent');
 
 /**
  * Write the results files.
@@ -54,6 +55,9 @@ async function orchestrate(login, outputs) {
     const playwright = require(require.resolve('@playwright/test', { paths: [config.root] }));
     const inventory = await establishSession(playwright, config, login, files);
 
+    const userAgent = await detectUserAgent(playwright, process.env.MMWP_E2E_USER_AGENT);
+    process.stderr.write(`User agent: ${userAgent}\n`);
+
     const cli = require.resolve('@playwright/test/cli', { paths: [config.root] });
     const run = spawnSync(process.execPath, [cli, 'test', '--config', path.join(__dirname, '..', 'playwright.config.js')], {
       cwd: config.root,
@@ -61,6 +65,7 @@ async function orchestrate(login, outputs) {
       env: Object.assign({}, process.env, {
         MMWP_E2E_LOGIN_TOKEN: '',
         MMWP_E2E_PASSWORD: '',
+        MMWP_E2E_USER_AGENT: userAgent,
         MMWP_E2E_STORAGE_STATE: files.storageState,
         MMWP_E2E_INVENTORY: files.inventory,
         MMWP_E2E_PW_REPORT: files.report,

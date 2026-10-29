@@ -30,6 +30,7 @@ Output:
   --json=<file>           Results JSON  (default mmwp-e2e-results.json; MMWP_E2E_RESULTS)
   --junit=<file>          JUnit XML     (MMWP_E2E_JUNIT; omitted when unset)
   --workers=<n>           Parallel pages (default 4; MMWP_E2E_WORKERS)
+  --user-agent=<ua>       Browser user agent (MMWP_E2E_USER_AGENT; default: desktop Chrome UA of the bundled Chromium)
 
 Exit code: 0 all checks passed, 1 a check failed or the run broke.
 
@@ -74,6 +75,7 @@ function parseArgs(argv, env = process.env) {
     specs: flags.spec || [],
     json: flags.json || env.MMWP_E2E_RESULTS || 'mmwp-e2e-results.json',
     junit: flags.junit || env.MMWP_E2E_JUNIT || '',
+    userAgent: flags['user-agent'] || env.MMWP_E2E_USER_AGENT || '',
     workers: flags.workers || env.MMWP_E2E_WORKERS || '4',
     help: Boolean(flags.help),
   };
