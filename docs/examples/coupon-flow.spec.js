@@ -2,7 +2,7 @@
 
 /**
  * Example plugin flow test for the browser layer: create, update, list and
- * delete a coupon through an extend-wp admin form, asserting notices and
+ * delete a coupon through a plugin's admin form, asserting notices and
  * that the page raised no console errors or failed REST/ajax calls.
  *
  * Copy it into the plugin (e.g. self-test/e2e/coupon-flow.spec.js), adapt the

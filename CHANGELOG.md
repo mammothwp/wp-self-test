@@ -63,7 +63,7 @@ Originating request: `mmwp-e2e crawl` aborted in 2 s on the plugin CI runner (ad
 
 ## [2.1.0] - 2026-10-23
 
-Originating request: add a `browser` layer so plugins (motivar/extend-wp, filox) get repeatable Playwright admin smoke tests through the existing manifest, runner and pre-push hook. wp-admin was never loaded in a browser by the rest/cli/ability/core layers, so JavaScript errors, screens that fail to render and broken form flows went unnoticed (found by hand on the filox DDEV site on 2026-10-21).
+Originating request: add a `browser` layer so plugins get repeatable Playwright admin smoke tests through the existing manifest, runner and pre-push hook. wp-admin was never loaded in a browser by the rest/cli/ability/core layers, so JavaScript errors, screens that fail to render and broken form flows went unnoticed (found by hand on a DDEV test site on 2026-10-21).
 
 ### Added
 - `browser` layer. A manifest case may declare `"browser": {"crawl": true, "specs": [...], "allow": {"console": [], "requests": [], "pages": []}, "timeout": 300}`; the case then lists, counts and filters the `browser` layer like `rest`/`cli`/`ability`/`core` (dashboard, `wp mmwp self-test list|run|report`, abilities). Existing manifests stay valid. `MammothWP\SelfTest\Browser_Case` is a ready-made class for browser-only cases.
@@ -74,9 +74,9 @@ Originating request: add a `browser` layer so plugins (motivar/extend-wp, filox)
 - `mmwp-e2e crawl` CLI (`e2e/bin/cli.js`) so CI can run the crawler without the PHP runner against a throwaway WordPress: flags or `MMWP_E2E_*` environment variables for the URL, login token or admin user/password, `--only-plugin`, allow-lists, `--json` and `--junit` output. Password login is refused unless `MMWP_E2E_ALLOW_PASSWORD_LOGIN=1`. Without the package's `admin-menu` route the page list is scraped from the admin menu HTML.
 - The crawler also opens the site front page once and fails on any response >= 500 and on uncaught page errors.
 - `mmwp_self_test_browser_command` filter to change how the Node runner is started.
-- Node package `@mammothwp/wp-self-test-e2e` at the repo root (`package.json` with a `files` whitelist, code in `e2e/`): Playwright config, the generic read-only admin crawler (HTTP 200, no PHP/WordPress error markup, no console errors, no failed wp-json/admin-ajax calls, per-plugin allow-lists), flow-test helpers (`openAdminPage`, `fillForm`, `submitForm`, `expectNotice`, `collector`, `expectNoBrowserErrors`) and JSON results folded into the normal report. Plugins install it from the public GitHub mirror (`git+https://github.com/mammothwp/wp-self-test.git#main`, no tags); every Node file is `export-ignore`d so the Composer dist archive never contains it.
+- Node package `@mammothwp/wp-self-test-e2e` at the repo root (`package.json` with a `files` whitelist, code in `e2e/`): Playwright config, the generic read-only admin crawler (HTTP 200, no PHP/WordPress error markup, no console errors, no failed wp-json/admin-ajax calls, per-plugin allow-lists), flow-test helpers (`openAdminPage`, `fillForm`, `submitForm`, `expectNotice`, `collector`, `expectNoBrowserErrors`) and JSON results folded into the normal report. Plugins install it from GitHub (`git+https://github.com/mammothwp/wp-self-test.git`); every Node file is `export-ignore`d so the Composer dist archive never contains it.
 - `bin/pre-push` runs `wp mmwp self-test run --layer=browser` through DDEV (or `MMWP_SELF_TEST_BROWSER_CMD`) for plugins that depend on the e2e package; a stopped DDEV or missing Node warns and skips.
-- GitLab `e2e` job: Node unit tests on saved HTML/console fixtures and the crawler against a fake site in Chromium.
+- CI `e2e` job: Node unit tests on saved HTML/console fixtures and the crawler against a fake site in Chromium.
 - Example flow test in `docs/examples/coupon-flow.spec.js`.
 - PHPUnit tests for browser manifest parsing, the menu inventory and the login token lifecycle.
 
@@ -90,7 +90,7 @@ Originating request: add a `browser` layer so plugins (motivar/extend-wp, filox)
 
 ## [1.0.0] - 2026-10-20
 
-Initial Mammoth WP release. Source of truth is GitLab `mammothwp/wp-self-test`; `github.com/mammothwp/wp-self-test` is a push mirror.
+Initial Mammoth WP release.
 
 ### Added
 - Manifest-driven self-test suite for WordPress plugins: `Registry`, `Runner` and `Case_Base` with `rest()`, `cli()`, `ability()` helpers and assertion helpers.

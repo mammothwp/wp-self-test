@@ -2,7 +2,7 @@
 
 Short version for people writing code or docs for a Mammoth WP product. The
 brand repo is the source of truth for tokens, logos and plugin asset templates
-(`gitlab.motivar.io/mammothwp/brand`, mirrored to `github.com/mammothwp/brand`).
+(`github.com/mammothwp/brand`).
 Never hand-copy assets into product code.
 
 ## Names

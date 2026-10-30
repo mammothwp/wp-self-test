@@ -1,5 +1,4 @@
-# GitLab is the only CI; GitHub is a push mirror. Same checks as the old
-# GitHub lint workflow: syntax, composer.json, PHPUnit, PHPCS, PHPStan.
+# Checks: syntax, composer.json, PHPUnit, PHPCS, PHPStan.
 stages: [check]
 
 
