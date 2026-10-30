@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-10-30
+
+### Changed
+- Documentation cleanup: removed internal request notes from the changelog and dropped `CLAUDE.md` from the repository (now git-ignored).
+
 ## [2.2.4] - 2026-10-29
 
 ### Fixed
@@ -38,8 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0] - 2026-10-28
 
-Originating request: plugins need to test an explicit list of admin and frontend pages instead of the whole admin menu (Nikos), so failures are about the plugin and not about WooCommerce's heavy screens.
-
 ### Added
 - `mmwp-e2e pages --url --file --vars --user --password [--workers --timeout-ms --allow-console --json --junit]`: opens the pages of a `browser-pages.json` (version 1) in a fresh browser context each (`as: admin` reuses the login, `guest` has no cookies), applies the crawler's failure checks plus `expect`, `expect_url` and `status`, substitutes `${VAR}` from `--vars`, and reports name, area, as, final URL, duration and result as JSON and JUnit. `crawl` is unchanged.
 - File validation: unknown keys warn, a missing `path` or `as` fails before the browser starts.
@@ -49,8 +52,6 @@ Originating request: plugins need to test an explicit list of admin and frontend
 - The ci-templates browser image packs this package from `main`; `image-browser` in `mammothwp/ci-templates` must be re-run after merge.
 
 ## [2.1.1] - 2026-10-23
-
-Originating request: `mmwp-e2e crawl` aborted in 2 s on the plugin CI runner (admin-terms-acceptance, job 453998) with `Unexpected token '<', "<!DOCTYPE "... is not valid JSON`: the site used plain permalinks (`/wp-json/` is not routed) and the plugin's built zip does not contain wp-self-test, so the `mmwp/v1/self-test/*` routes did not exist.
 
 ### Fixed
 - The Node side calls every REST route through `?rest_route=/mmwp/v1/self-test/...`, which works with any permalink setting. `--rest-url` still overrides the base.
@@ -62,8 +63,6 @@ Originating request: `mmwp-e2e crawl` aborted in 2 s on the plugin CI runner (ad
 - Tests: `rest.js` unit tests, and fake-site integration tests for plain permalinks without self-test routes (HTML and JSON 404), plain permalinks with routes, and pretty permalinks with routes.
 
 ## [2.1.0] - 2026-10-23
-
-Originating request: add a `browser` layer so plugins get repeatable Playwright admin smoke tests through the existing manifest, runner and pre-push hook. wp-admin was never loaded in a browser by the rest/cli/ability/core layers, so JavaScript errors, screens that fail to render and broken form flows went unnoticed (found by hand on a DDEV test site on 2026-10-21).
 
 ### Added
 - `browser` layer. A manifest case may declare `"browser": {"crawl": true, "specs": [...], "allow": {"console": [], "requests": [], "pages": []}, "timeout": 300}`; the case then lists, counts and filters the `browser` layer like `rest`/`cli`/`ability`/`core` (dashboard, `wp mmwp self-test list|run|report`, abilities). Existing manifests stay valid. `MammothWP\SelfTest\Browser_Case` is a ready-made class for browser-only cases.
@@ -83,7 +82,7 @@ Originating request: add a `browser` layer so plugins get repeatable Playwright 
 ## [2.0.0] - 2026-10-20
 
 ### Changed
-- CI runs on GitLab only (`.gitlab-ci.yml`, one `check` job: `php -l`, `composer validate --strict`, PHPUnit, PHPCS, PHPStan) on the public `composer:2` image; pipelines run for merge requests and the `develop` and `main` branches, never tags.
+- CI runs from `.gitlab-ci.yml` (one `check` job: `php -l`, `composer validate --strict`, PHPUnit, PHPCS, PHPStan) on the public `composer:2` image; pipelines run for merge requests and the `develop` and `main` branches, never tags.
 
 ### Removed
 - Removed the 1.x compatibility layer for pre-release names.
