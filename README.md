@@ -36,8 +36,7 @@ filtered by plugin and by surface (REST / WP-CLI / Abilities).
 composer require mammothwp/wp-self-test
 ```
 
-Source of truth: GitLab `mammothwp/wp-self-test`; `github.com/mammothwp/wp-self-test`
-is a push mirror (issues and Packagist point there).
+Releases are tagged `vX.Y.Z` and published on Packagist, so no `@dev` constraint is needed.
 
 The package is a runtime dependency because the dashboard, the command and
 the abilities execute inside WordPress. Nothing boots when the environment
