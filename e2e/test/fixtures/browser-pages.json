@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "about": "Fixture for the mmwp-e2e pages tests.",
+  "setup": [{ "wp": "option update blogname Demo" }],
+  "pages": [
+    { "area": "admin", "name": "Dashboard", "path": "/wp-admin/index.php", "as": "admin", "expect": "#adminmenu", "note": "ignored" },
+    { "area": "admin", "name": "Product edit", "path": "/wp-admin/post.php?post=${PRODUCT_ID}&action=edit", "as": "admin", "expect_url": "post=${PRODUCT_ID}" },
+    { "area": "frontend", "name": "Front page", "path": "/", "as": "guest", "expect": "h1" },
+    { "area": "frontend", "name": "Missing", "path": "/nope", "as": "guest", "status": 404 }
+  ]
+}

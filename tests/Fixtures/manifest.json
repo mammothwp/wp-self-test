@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "cases": [
+        {"id": "demo", "label": "Demo case", "class": "MammothWP\\SelfTest\\Tests\\Fixtures\\Demo_Case", "category": "demo", "layers": ["core"]}
+    ]
+}
