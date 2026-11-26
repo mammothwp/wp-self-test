@@ -71,7 +71,36 @@ final class Plugin_Scope
      */
     public function owns($file)
     {
-        return null !== $this->relative($file);
+        $relative = $this->relative($file);
+
+        return null !== $relative && !self::is_vendor($relative);
+    }
+
+    /**
+     * Whether a plugin-relative path is inside a bundled package (`vendor/`).
+     *
+     * @param string $relative Plugin-relative path.
+     *
+     * @return bool
+     */
+    public static function is_vendor($relative)
+    {
+        return 0 === strpos($relative, 'vendor/');
+    }
+
+    /**
+     * Whether a described callable is Pro-only: it lives in a Pro path, or is a
+     * Freemius `__premium_only` function or method.
+     *
+     * @param array{name: string, file: string|null} $info Result of describe().
+     *
+     * @return bool
+     */
+    public function is_pro_callable(array $info)
+    {
+        $suffix = '__premium_only';
+
+        return $this->is_pro($info['file']) || substr($info['name'], -strlen($suffix)) === $suffix;
     }
 
     /**
@@ -105,7 +134,8 @@ final class Plugin_Scope
     }
 
     /**
-     * Stable name and file of a callable.
+     * Stable name and file of a callable. A wp-kit adapter closure is described
+     * as the service method it runs.
      *
      * @param mixed $callable Callable.
      *
@@ -113,7 +143,7 @@ final class Plugin_Scope
      */
     public function describe($callable)
     {
-        $info = Callable_Info::inspect($callable);
+        $info = Callable_Info::inspect(Kit_Unwrap::callable($callable));
         $name = $info['name'];
 
         if ('{closure}' === $name && null !== $info['file']) {

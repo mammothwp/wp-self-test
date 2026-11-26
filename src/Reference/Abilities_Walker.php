@@ -46,7 +46,7 @@ final class Abilities_Walker
                 'callback'      => $info['name'],
                 'permission'    => Permission::summarize(self::property($ability, 'permission_callback'), $scope),
                 'meta'          => self::schema($ability->get_meta()),
-                'pro'           => $scope->is_pro($info['file']),
+                'pro'           => $scope->is_pro_callable($info),
             ];
         }
 
@@ -67,6 +67,10 @@ final class Abilities_Walker
     {
         if ($scope->owns($file)) {
             return true;
+        }
+
+        if (null !== $file && null !== $scope->relative($file)) {
+            return false;
         }
 
         $name = (string) $ability->get_name();

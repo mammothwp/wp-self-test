@@ -369,7 +369,20 @@ parsed from source; it asks the running WordPress:
   free build drops: the `forbid` / `strip` (also `remove`, `exclude`) lists of
   the plugin's `mmwp-free.json` and the `@fs_premium_only` paths in the main
   file header. A plain path matches itself and everything below it; `*` globs
-  work. Without these, everything is `false`.
+  work. Without these, everything is `false`. A callback whose function or
+  method name ends in `__premium_only` (Freemius) is Pro too.
+- **mammothwp/wp-kit** — the REST and ability closures a wp-kit adapter
+  registers are attributed to the service method the operation runs, and the
+  `permission.capability` is the one the operation declared (a computed
+  resolver is read from its source).
+- **Scope** — code under the plugin's own `vendor/` (bundled packages such as
+  mammothwp/support or this one) is never part of the plugin's reference.
+- **Deferred commands** — commands WP-CLI deferred because their parent was
+  never registered (`mmwp-sc list` without `mmwp-sc`) are resolved and listed.
+- **Environment** — the command works on every environment, `production`
+  included (it is read-only): where the suite is gated off, only
+  `wp mmwp reference` is registered, so CI's `check:reference` needs no
+  `WP_ENVIRONMENT_TYPE` or `mmwp_self_test_enabled` setting.
 
 The output follows [`schema/reference.v1.json`](schema/reference.v1.json)
 (`"schema": 1`) and is deterministic — sorted keys and lists, no timestamps,

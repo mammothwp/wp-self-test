@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-11-26
+
+### Changed
+- CI: includes `library.gitlab-ci.yml` + `publish.gitlab-ci.yml` from ci-templates. The `check` job is replaced by the template's `deps`/`lint`/`phpunit`/`phpcs`/`phpstan` jobs, and merging to main now creates the `v2.3.1` tag automatically (`release:tag`).
+
+### Fixed
+- `wp mmwp reference`: the `cli` section was always empty. WP-CLI's `Subcommand` extends `CompositeCommand`, so leaves were walked as groups; only a node with subcommands is a group now.
+- Commands WP-CLI deferred because their parent was never registered (`mmwp-sc list` without `mmwp-sc`) are resolved and reported.
+- `pro` was always `false`: a callback named `…__premium_only` is Pro, and closures from mammothwp/wp-kit adapters are attributed to the service method they run, so the `@fs_premium_only` / `mmwp-free.json` paths apply to the real callable.
+- Items registered by bundled packages under the plugin's `vendor/` (mammothwp/support routes and abilities, wp-kit, wp-self-test) no longer appear in the plugin's reference.
+- `permission.capability` of wp-kit routes and abilities is the capability the operation declared (read from `Operation::capability_resolver()`; no wp-kit change needed).
+- `wp mmwp reference` works on `production` (CI's `check:reference`): when the suite is gated off only this read-only command is registered.
+
 ## [2.3.0] - 2026-11-26
 
 ### Added

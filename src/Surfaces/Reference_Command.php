@@ -3,6 +3,7 @@
 namespace MammothWP\SelfTest\Surfaces;
 
 use MammothWP\SelfTest\Reference\Canonical;
+use MammothWP\SelfTest\Reference\Cli_Walker;
 use MammothWP\SelfTest\Reference\Plugin_Scope;
 use MammothWP\SelfTest\Reference\Pro_Paths;
 use MammothWP\SelfTest\Reference\Reference;
@@ -117,6 +118,8 @@ final class Reference_Command
      */
     private static function collect($slug, $version, Plugin_Scope $scope)
     {
+        Cli_Walker::resolve_deferred();
+
         $server    = rest_get_server();
         $abilities = function_exists('wp_get_abilities') ? array_values((array) wp_get_abilities()) : [];
 

@@ -38,6 +38,9 @@ final class Loader
     /** @var bool */
     private static $hooked = false;
 
+    /** @var bool Booted without the suite: only `wp mmwp reference`, on a gated environment. */
+    private static $reference_only = false;
+
     /** @var bool|null Memoised answer of enabled(). */
     private static $enabled = null;
 
@@ -103,12 +106,17 @@ final class Loader
      */
     public static function boot()
     {
-        if (self::$booted !== null || !self::enabled()) {
+        if (self::$booted !== null) {
             return;
         }
 
         $path = self::pick_newest(self::$copies);
         if ($path === null) {
+            return;
+        }
+
+        if (!self::enabled()) {
+            self::boot_reference_only($path);
             return;
         }
 
@@ -172,6 +180,33 @@ final class Loader
     }
 
     /**
+     * Gated environment (production): register only `wp mmwp reference`.
+     *
+     * The command reads the registrations of a plugin and writes nothing
+     * to the site, so CI can run it (`check:reference`) on a site whose
+     * environment type is `production`. Nothing else boots, and
+     * is_booted() stays false.
+     *
+     * @param string $path Directory of the newest copy.
+     *
+     * @return void
+     *
+     * @since 2.3.1
+     */
+    private static function boot_reference_only($path)
+    {
+        if (!defined('WP_CLI') || !WP_CLI) {
+            return;
+        }
+
+        self::$booted         = $path;
+        self::$reference_only = true;
+        spl_autoload_register([self::class, 'autoload'], true, true);
+
+        \MammothWP\SelfTest\Surfaces\Reference_Command::init();
+    }
+
+    /**
      * The site's environment: `WP_ENV` when defined (Bedrock-style),
      * otherwise `wp_get_environment_type()` (the `WP_ENVIRONMENT_TYPE`
      * environment variable or constant; `production` when unset).
@@ -212,7 +247,7 @@ final class Loader
     /** @return bool */
     public static function is_booted()
     {
-        return self::$booted !== null;
+        return self::$booted !== null && !self::$reference_only;
     }
 
     /** @return string Version of the booted copy, empty before boot. */

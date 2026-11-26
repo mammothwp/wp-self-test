@@ -123,7 +123,7 @@ final class Rest_Walker
             'description' => isset($handler['description']) ? (string) $handler['description'] : '',
             'args'        => self::args($handler['args'] ?? []),
             'permission'  => Permission::summarize($handler['permission_callback'] ?? null, $scope),
-            'pro'         => $scope->is_pro($info['file']),
+            'pro'         => $scope->is_pro_callable($info),
         ];
     }
 
