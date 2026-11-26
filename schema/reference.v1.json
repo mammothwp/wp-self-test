@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mammothwp.com/schema/reference.v1.json",
+  "title": "Mammoth WP plugin reference, schema v1",
+  "description": "Output of `wp mmwp reference`: what a plugin registered at runtime. Deterministic: sorted keys, sorted lists, no timestamps, no absolute paths.",
+  "type": "object",
+  "required": ["schema", "plugin", "version", "rest", "cli", "abilities"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "plugin": { "type": "string", "description": "Plugin slug." },
+    "version": { "type": "string", "description": "Version header of the main plugin file." },
+    "rest": { "type": "array", "items": { "$ref": "#/$defs/rest" } },
+    "cli": { "type": "array", "items": { "$ref": "#/$defs/cli" } },
+    "abilities": { "type": "array", "items": { "$ref": "#/$defs/ability" } }
+  },
+  "$defs": {
+    "permission": {
+      "type": "object",
+      "required": ["callback", "capability", "public"],
+      "additionalProperties": false,
+      "properties": {
+        "callback": { "type": ["string", "null"], "description": "Permission callback name; null when none is registered." },
+        "capability": { "type": ["string", "null"], "description": "First literal current_user_can() capability found in the callback, else null." },
+        "public": { "type": "boolean", "description": "True for __return_true." }
+      }
+    },
+    "rest_arg": {
+      "type": "object",
+      "required": ["name", "required"],
+      "properties": {
+        "name": { "type": "string" },
+        "required": { "type": "boolean" },
+        "type": {},
+        "description": { "type": "string" },
+        "enum": { "type": "array" },
+        "default": {},
+        "format": { "type": "string" }
+      }
+    },
+    "rest": {
+      "type": "object",
+      "required": ["route", "method", "methods", "namespace", "callback", "description", "args", "permission", "pro"],
+      "additionalProperties": false,
+      "properties": {
+        "route": { "type": "string" },
+        "method": { "type": "string" },
+        "methods": { "type": "array", "items": { "type": "string" } },
+        "namespace": { "type": "string" },
+        "callback": { "type": "string" },
+        "description": { "type": "string" },
+        "args": { "type": "array", "items": { "$ref": "#/$defs/rest_arg" } },
+        "permission": { "$ref": "#/$defs/permission" },
+        "pro": { "type": "boolean" }
+      }
+    },
+    "cli_arg": {
+      "type": "object",
+      "required": ["type", "name", "optional", "repeating", "description", "default", "options"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["positional", "assoc", "flag", "generic"] },
+        "name": { "type": "string" },
+        "optional": { "type": "boolean" },
+        "repeating": { "type": "boolean" },
+        "description": { "type": "string" },
+        "default": { "type": ["string", "null"] },
+        "options": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cli": {
+      "type": "object",
+      "required": ["command", "callback", "shortdesc", "longdesc", "synopsis", "pro"],
+      "additionalProperties": false,
+      "properties": {
+        "command": { "type": "string", "description": "Full command path without the leading `wp`." },
+        "callback": { "type": "string" },
+        "shortdesc": { "type": "string" },
+        "longdesc": { "type": "string", "description": "Raw long description." },
+        "synopsis": { "type": "array", "items": { "$ref": "#/$defs/cli_arg" } },
+        "pro": { "type": "boolean" }
+      }
+    },
+    "ability": {
+      "type": "object",
+      "required": ["name", "label", "description", "category", "input_schema", "output_schema", "callback", "permission", "meta", "pro"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "input_schema": { "type": ["object", "array", "null"] },
+        "output_schema": { "type": ["object", "array", "null"] },
+        "callback": { "type": "string" },
+        "permission": { "$ref": "#/$defs/permission" },
+        "meta": { "type": ["object", "array", "null"], "description": "Includes annotations." },
+        "pro": { "type": "boolean" }
+      }
+    }
+  }
+}

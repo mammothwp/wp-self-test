@@ -1,0 +1,4 @@
+{
+  "forbid": ["pro/"],
+  "strip": ["vendor/pro-lib"]
+}

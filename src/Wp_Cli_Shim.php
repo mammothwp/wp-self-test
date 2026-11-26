@@ -90,6 +90,21 @@ namespace {
                 \WP_CLI\StubRecorder::$log[] = (string) $message;
             }
 
+            public static function line($message = '')
+            {
+                \WP_CLI\StubRecorder::$log[] = (string) $message;
+            }
+
+            /**
+             * The shim has no command tree.
+             *
+             * @return null
+             */
+            public static function get_root_command()
+            {
+                return null;
+            }
+
             public static function print_value($value, $assoc_args = [])
             {
                 \WP_CLI\StubRecorder::$printed[] = $value;

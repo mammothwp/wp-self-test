@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-11-26
+
+### Added
+- `wp mmwp reference --plugin=<slug> [--output=<file>] [--format=json]`: a deterministic JSON developer reference (schema v1) of a plugin's runtime registrations: REST routes per method, WP-CLI commands with parsed synopsis, and Abilities API abilities, each flagged `pro` when its callback lives under a path stripped from the free build (`mmwp-free.json` forbid/strip lists, `@fs_premium_only`).
+- `schema/reference.v1.json`, the JSON Schema of that output, documented in the README.
+- `WP_CLI::line()` and `WP_CLI::get_root_command()` in the in-process shim.
+
 ## [2.2.5] - 2026-10-30
 
 ### Changed

@@ -346,6 +346,41 @@ and runs every manifest with cleanup, exiting 1 on failure. Plugins without
 a bootstrap can point `phpunit.xml` and `bin/run.php` at
 `phpunit/bootstrap.php` with `MMWP_PLUGIN_FILES=/path/to/plugin.php`.
 
+## Developer reference
+
+`wp mmwp reference --plugin=<slug> [--output=<file>] [--format=json]` prints a
+JSON reference of what an **active** plugin registered at runtime. Nothing is
+parsed from source; it asks the running WordPress:
+
+- **REST** — `rest_get_server()->get_routes()`, kept per route and method when
+  the route's callback is defined under the plugin directory (any namespace).
+  Each entry has `args` (type, required, description, enum, default, format…),
+  a `permission` summary (callback name, and `capability` when the callback
+  body has a literal `current_user_can('x')`) and the registered description.
+- **WP-CLI** — the command tree (`WP_CLI::get_root_command()`), kept when the
+  command's callable file is under the plugin directory: full path, `shortdesc`,
+  raw `longdesc` and the parsed `synopsis` (type, name, optional, repeating,
+  description, default, options).
+- **Abilities** — `wp_get_abilities()` (skipped if the Abilities API is
+  missing), kept by execute-callback file, `<slug>/` name prefix or `<slug>`
+  category: label, description, category, input/output schema, permission
+  summary and meta (annotations). Empty schemas/meta are `null`.
+- **Pro marking** — `"pro": true` when the callback file lives under a path the
+  free build drops: the `forbid` / `strip` (also `remove`, `exclude`) lists of
+  the plugin's `mmwp-free.json` and the `@fs_premium_only` paths in the main
+  file header. A plain path matches itself and everything below it; `*` globs
+  work. Without these, everything is `false`.
+
+The output follows [`schema/reference.v1.json`](schema/reference.v1.json)
+(`"schema": 1`) and is deterministic — sorted keys and lists, no timestamps,
+absolute paths replaced by `{plugin}` / `{abspath}` — so CI can commit it and
+diff it:
+
+```bash
+wp mmwp reference --plugin=my-plugin --output=docs/reference.json
+git diff --exit-code docs/reference.json
+```
+
 ## Filters and actions
 
 | Hook | Kind | Signature |

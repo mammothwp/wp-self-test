@@ -52,6 +52,8 @@ final class Cli
         self::$runner = $runner;
 
         \WP_CLI::add_command('mmwp self-test', [__CLASS__, 'dispatch']);
+
+        Reference_Command::init();
     }
 
     /**
